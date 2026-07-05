@@ -39,6 +39,7 @@ rag:
 # Local storage path where uploaded PDFs are persisted
 storage:
   documents-path: storage/documents
+  registry-file: storage/registry.json   # persisted document registry — survives restarts
 
 server:
   port: 8085

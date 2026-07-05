@@ -19,4 +19,10 @@ public class StorageProperties {
      * Default: storage/documents
      */
     private String documentsPath = "storage/documents";
+
+    /**
+     * Path to the JSON file used to persist the document registry across restarts.
+     * Default: storage/registry.json
+     */
+    private String registryFile = "storage/registry.json";
 }
