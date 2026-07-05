@@ -36,6 +36,7 @@ build/
 ### Local PDF Storage — ignore uploaded files but keep folder structure ###
 storage/documents/*
 storage/registry.json
+storage/registry.json.bak
 !storage/documents/.gitkeep
 
 ### macOS ###
