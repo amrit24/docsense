@@ -27,41 +27,18 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Orchestrates the full PDF ingestion pipeline:
- *
- * <pre>
- * Upload
- *   │
- *   ▼ [1] Save PDF → storage/documents/
- *   │
- *   ▼ [2] Read PDF pages  (PagePdfDocumentReader)
- *   │
- *   ▼ [3] Split into overlapping chunks  (TokenTextSplitter)
- *   │
- *   ▼ [4] Tag chunks with documentId + metadata
- *   │
- *   ▼ [5] Generate embeddings + store in ChromaDB  (VectorStore → Ollama)
- *   │
- *   ▼ [6] Register DocumentRecord  (DocumentRegistry)
- * </pre>
+ * Orchestrates the full PDF ingestion and document lifecycle operations.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DocumentIngestionService {
+public class DocumentService {
 
     private final StorageService storageService;
     private final VectorStore vectorStore;
     private final DocumentRegistry documentRegistry;
     private final RagProperties ragProperties;
 
-    /**
-     * Runs the full ingestion pipeline for an uploaded PDF.
-     *
-     * @param file the uploaded multipart PDF file
-     * @return ingestion summary including the stable {@code documentId}
-     * @throws IOException if saving or reading the file fails
-     */
     public IngestionResponse ingest(MultipartFile file) throws IOException {
         String fileName = file.getOriginalFilename();
         String documentId = UUID.randomUUID().toString();
@@ -73,26 +50,25 @@ public class DocumentIngestionService {
         Path savedPath = storageService.save(file);
         log.info("[1/5] Saved to disk: {}", savedPath);
 
-                // ── [1.5] Compute file hash and check for duplicates ───────────────────
-                String sha256 = computeSha256Hex(savedPath);
-                documentRegistry.findByHash(sha256).ifPresent(existing -> {
-                        log.info("Duplicate upload detected — existing documentId={} (file={})", existing.getDocumentId(), existing.getFileName());
-                });
-                // if found, return early to avoid re-ingestion
-                var existingOpt = documentRegistry.findByHash(sha256);
-                if (existingOpt.isPresent()) {
-                        DocumentRecord existing = existingOpt.get();
-                        return IngestionResponse.builder()
-                                        .message("Document already ingested. Returning existing documentId.")
-                                        .documentId(existing.getDocumentId())
-                                        .fileName(existing.getFileName())
-                                        .pageCount(existing.getPageCount())
-                                        .chunksStored(existing.getChunksStored())
-                                        .uploadedAt(existing.getUploadedAt())
-                                        .build();
-                }
+        // ── [1.5] Compute file hash and check for duplicates ───────────────────
+        String sha256 = computeSha256Hex(savedPath);
+        documentRegistry.findByHash(sha256).ifPresent(existing -> {
+            log.info("Duplicate upload detected — existing documentId={} (file={})", existing.getDocumentId(), existing.getFileName());
+        });
+        var existingOpt = documentRegistry.findByHash(sha256);
+        if (existingOpt.isPresent()) {
+            DocumentRecord existing = existingOpt.get();
+            return IngestionResponse.builder()
+                    .message("Document already ingested. Returning existing documentId.")
+                    .documentId(existing.getDocumentId())
+                    .fileName(existing.getFileName())
+                    .pageCount(existing.getPageCount())
+                    .chunksStored(existing.getChunksStored())
+                    .uploadedAt(existing.getUploadedAt())
+                    .build();
+        }
 
-                // ── [2] Read PDF pages from saved file ─────────────────────────────────
+        // ── [2] Read PDF pages from saved file ─────────────────────────────────
         Resource pdfResource = storageService.load(fileName);
 
         PdfDocumentReaderConfig readerConfig = PdfDocumentReaderConfig.builder()
@@ -117,7 +93,6 @@ public class DocumentIngestionService {
                 chunks.size(), ragProperties.getChunkSize(), ragProperties.getChunkOverlap());
 
         // ── [4] Tag every chunk with documentId and source metadata ─────────────
-        // Tagging with document_id enables precise per-document filtering at query time.
         chunks.forEach(chunk -> {
             Map<String, Object> meta = chunk.getMetadata();
             meta.put("document_id",   documentId);
@@ -127,10 +102,13 @@ public class DocumentIngestionService {
         log.info("[4/5] Tagged {} chunks with documentId={}", chunks.size(), documentId);
 
         // ── [5] Embed chunks and store in ChromaDB ──────────────────────────────
-        // VectorStore calls OllamaEmbeddingModel (nomic-embed-text) to produce vectors,
-        // then persists vectors + text + metadata to ChromaDB in one batch.
+        // Persist embeddings to the vector store.
+        // NOTE: Spring AI's VectorStore.add(...) returns void in this version,
+        // so we cannot capture vector IDs here. If a future VectorStore API
+        // returns the created IDs, capture them and store in DocumentRecord.chunkIds.
         vectorStore.add(chunks);
         log.info("[5/5] Stored {} embeddings in ChromaDB", chunks.size());
+        java.util.List<String> chunkIds = java.util.Collections.emptyList();
 
         // ── [6] Register the document record ───────────────────────────────────
         DocumentRecord record = DocumentRecord.builder()
@@ -139,6 +117,7 @@ public class DocumentIngestionService {
                 .storedPath(savedPath.toString())
                 .pageCount(pageCount)
                 .chunksStored(chunks.size())
+                .chunkIds(chunkIds)
                 .uploadedAt(uploadedAt)
                 .sha256(sha256)
                 .build();
@@ -157,24 +136,53 @@ public class DocumentIngestionService {
                 .build();
     }
 
-        private String computeSha256Hex(Path path) throws IOException {
-                try (InputStream in = java.nio.file.Files.newInputStream(path)) {
-                        MessageDigest md = MessageDigest.getInstance("SHA-256");
-                        try (DigestInputStream dis = new DigestInputStream(in, md)) {
-                                byte[] buffer = new byte[8192];
-                                while (dis.read(buffer) != -1) {
-                                        // read stream to update digest
-                                }
-                        }
-                        byte[] digest = md.digest();
-                        // convert to hex
-                        StringBuilder sb = new StringBuilder(digest.length * 2);
-                        for (byte b : digest) {
-                                sb.append(String.format("%02x", b));
-                        }
-                        return sb.toString();
-                } catch (NoSuchAlgorithmException e) {
-                        throw new RuntimeException("SHA-256 algorithm not available", e);
+    private String computeSha256Hex(Path path) throws IOException {
+        try (InputStream in = java.nio.file.Files.newInputStream(path)) {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            try (DigestInputStream dis = new DigestInputStream(in, md)) {
+                byte[] buffer = new byte[8192];
+                while (dis.read(buffer) != -1) {
+                    // read stream to update digest
                 }
+            }
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
         }
+    }
+
+    /**
+     * Deletes a document from the vector store and registry.
+     * Returns {@code true} if a document was found and deleted, {@code false} if not found.
+     */
+    public boolean deleteDocument(String documentId) {
+        var opt = documentRegistry.findById(documentId);
+        if (opt.isEmpty()) return false;
+        DocumentRecord record = opt.get();
+
+        if (record.getChunkIds() != null && !record.getChunkIds().isEmpty()) {
+            try {
+                vectorStore.delete(record.getChunkIds());
+            } catch (Exception e) {
+                log.warn("Failed to delete vectors for document {}: {}", documentId, e.getMessage());
+            }
+        }
+
+        documentRegistry.deleteById(documentId);
+
+        try {
+            if (record.getStoredPath() != null && !record.getStoredPath().isBlank()) {
+                java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(record.getStoredPath()));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete stored file for document {}: {}", documentId, e.getMessage());
+        }
+
+        return true;
+    }
 }

@@ -90,8 +90,25 @@ public class DocumentRegistry {
         if (record.getSha256() != null && !record.getSha256().isBlank()) {
             hashIndex.put(record.getSha256(), record.getDocumentId());
         }
+        // ensure chunk index integrity: (no-op here, chunkIds stored on record)
         log.debug("Registered document: id={} file={}", record.getDocumentId(), record.getFileName());
         saveToDisk();
+    }
+
+    /**
+     * Remove a document record from the registry and persist the change.
+     * Returns the removed record, or empty if not present.
+     */
+    public java.util.Optional<DocumentRecord> deleteById(String documentId) {
+        DocumentRecord removed = store.remove(documentId);
+        if (removed != null) {
+            if (removed.getSha256() != null && !removed.getSha256().isBlank()) {
+                hashIndex.remove(removed.getSha256());
+            }
+            saveToDisk();
+            return java.util.Optional.of(removed);
+        }
+        return java.util.Optional.empty();
     }
 
     /**

@@ -35,4 +35,7 @@ public class DocumentRecord {
 
     @Schema(description = "SHA-256 hash of the file contents (hex)", example = "3a7bd3e2360a...f4b2")
     private String sha256;
+
+    @Schema(description = "List of chunk IDs stored in the vector store for this document")
+    private java.util.List<String> chunkIds;
 }

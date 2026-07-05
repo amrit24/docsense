@@ -263,42 +263,63 @@ Step 1: Validate
          → If not: return 400 Bad Request
 
 Step 2: Save to disk
-         StorageService writes the bytes to storage/documents/filename.pdf
+         `StorageService` writes the bytes to `storage/documents/filename.pdf`
          → Path traversal protection: strips directory components from filename
-         → Overwrites if file already exists
+         → Overwrites if a file with the same name exists (upload always replaces on disk)
 
-Step 3: Read PDF pages
-         PagePdfDocumentReader reads each page as a separate Document object
+Step 3: Compute file hash (dedup check)
+         The service computes a SHA-256 of the saved file and looks up the hash in
+         `DocumentRegistry`.
+         - If a matching `sha256` exists: ingestion is skipped (no embeddings written),
+           and the existing `documentId` is returned in the response.
+         - If no match: continue to read and ingest the file normally. The computed
+           `sha256` is persisted with the `DocumentRecord` to enable future dedup checks.
+
+Step 4: Read PDF pages
+         `PagePdfDocumentReader` reads each page as a separate `Document` object
          Each Document has:
-           - getText()          → the text content of that page
-           - getMetadata()      → { "page_number": 5, "source": "file.pdf" }
+           - `getText()`          → the text content of that page
+           - `getMetadata()`      → { "page_number": 5, "source": "file.pdf" }
          → One Document per page preserves page number metadata
 
-Step 4: Split into chunks
-         TokenTextSplitter breaks each page's text into chunks of ~1000 chars
+Step 5: Split into chunks
+         `TokenTextSplitter` breaks each page's text into chunks of ~1000 chars
          with 200 chars of overlap between consecutive chunks
          Example: A 3000-char page becomes ~4 chunks
          → Overlap prevents losing context at chunk boundaries
 
-Step 5: Tag metadata
+Step 6: Tag metadata
          Each chunk gets additional metadata:
-           - document_id   → UUID we generate (e.g., "a3f1-...")
-           - document_name → "JavaDesignPatterns.pdf"
-           - source        → "JavaDesignPatterns.pdf"
+           - `document_id`   → application-level UUID assigned at upload
+           - `document_name` → original filename (used for UI & filtering)
+           - `source`        → filename (legacy key)
 
-Step 6: Embed + store
-         vectorStore.add(chunks) does two things:
-           a) Calls OllamaEmbeddingModel to generate a vector for each chunk's text
-           b) Stores each (vector + text + metadata) in ChromaDB
-         → This is the slow step for large PDFs (~5-10 seconds per page on M1)
+Step 7: Embed + store
+         `vectorStore.add(chunks)` calls the embedding model (Ollama `nomic-embed-text`)
+         and stores each (vector + text + metadata) in ChromaDB.
+         Note: in this Spring AI version `VectorStore.add(...)` does not return the
+         created chunk IDs. We persist an empty `chunkIds` list on the `DocumentRecord`.
+         If you upgrade to a VectorStore implementation that returns created IDs,
+         capture and persist them so documents can be deleted cleanly later.
 
-Step 7: Register
-         DocumentRegistry stores a DocumentRecord in memory and persists to disk:
-           { documentId, fileName, pageCount, chunksStored, uploadedAt }
+Step 8: Register
+         `DocumentRegistry` stores the `DocumentRecord` and persists it to `storage/registry.json`:
+           { documentId, fileName, storedPath, pageCount, chunksStored, chunkIds, sha256, uploadedAt }
 
-Step 8: Return response
+Step 9: Return response
+         Successful ingest:
          {
            "message": "Document uploaded successfully.",
+           "documentId": "a3f1c2d4-...",
+           "fileName": "JavaDesignPatterns.pdf",
+           "pageCount": 320,
+           "chunksStored": 412,
+           "uploadedAt": "2026-07-05T10:30:00Z"
+         }
+
+         Duplicate detected (same bytes already indexed):
+         {
+           "message": "Document already ingested. Returning existing documentId.",
            "documentId": "a3f1c2d4-...",
            "fileName": "JavaDesignPatterns.pdf",
            "pageCount": 320,
@@ -332,6 +353,12 @@ Step 3: Search ChromaDB
            → Adds a metadata filter: only search chunks where document_id = "a3f1-..."
            → This scopes the search to one specific document
 
+         Note on duplicates: If a document was previously uploaded multiple times (pre-migration),
+         the collection may contain duplicate chunks from different `document_id` values. The
+         new SHA-256 deduplication prevents future identical uploads from creating additional
+         duplicates, but existing duplicates remain unless removed via a cleanup that deletes
+         the associated chunk IDs from ChromaDB.
+
 Step 4: Handle empty results
          If no chunks found → return "I don't have enough information..."
          (This happens when no PDF has been uploaded yet)
@@ -354,6 +381,9 @@ Step 6: Call Ollama with grounded prompt
          User message: "Explain Singleton Pattern."
 
          → The LLM sees the actual page content and generates an answer from it
+
+         Note on determinism: the configured chat model is invoked with `temperature: 0.0`
+         by default to produce factual, deterministic answers based on the provided context.
 
 Step 7: Build citations
          Retrieved chunks are mapped to Source objects:
@@ -427,7 +457,7 @@ public class RagProperties {
 }
 ```
 
-Binds the `rag.*` properties from `application.yaml`. Injected into `DocumentIngestionService` and `RagQueryService` to make chunk size, overlap, and retrieval count configurable without code changes.
+ Binds the `rag.*` properties from `application.yaml`. Injected into `DocumentService` and `RagQueryService` to make chunk size, overlap, and retrieval count configurable without code changes.
 
 ---
 
@@ -447,7 +477,7 @@ Key methods:
 
 ---
 
-### 9.5 `service/DocumentIngestionService.java`
+### 9.5 `service/DocumentService.java`
 
 Orchestrates the 5-step ingestion pipeline (save → read → split → tag → embed+store) and registers the result in `DocumentRegistry`.
 
@@ -538,7 +568,7 @@ Single endpoint: `POST /api/v1/chat`. Validates the request body with `@Valid`, 
 ### 9.9 `controller/DocumentController.java`
 
 Three endpoints:
-- `POST /api/v1/documents/upload` — validates PDF, delegates to `DocumentIngestionService.ingest()`
+- `POST /api/v1/documents/upload` — validates PDF, delegates to `DocumentService.ingest()`
 - `GET /api/v1/documents` — returns all records from `DocumentRegistry`
 - `GET /api/v1/documents/{id}` — looks up one record by UUID, returns 404 if not found
 
@@ -766,11 +796,22 @@ springdoc:
 
 ---
 
-### No deletion support
+### ~~No deletion support~~ — resolved
 
-**Current behaviour:** Once a document is indexed, its chunks cannot be removed from ChromaDB through the API.
+**Previous behaviour:** Once a document was indexed there was no application API to remove its chunks from ChromaDB. The only way to remove vectors was to operate directly against the ChromaDB collection.
 
-**Fix:** Add `DELETE /api/v1/documents/{id}` that calls `vectorStore.delete(List<String> ids)` for all chunk IDs associated with that document. This requires storing chunk IDs in the registry.
+**Current behaviour:** A `DELETE /api/v1/documents/{id}` endpoint has been added. The controller delegates deletion to `DocumentService.deleteDocument(documentId)`, which performs three steps:
+
+- Deletes vectors from the `VectorStore` if the `DocumentRecord.chunkIds` list is present and non-empty (calls `vectorStore.delete(...)`).
+- Removes the document record from `DocumentRegistry` and persists the registry to `storage/registry.json`.
+- Attempts to delete the stored PDF file from disk (best-effort, errors are logged but do not prevent registry removal).
+
+**Limitations:** In the current Spring AI / VectorStore version, `vectorStore.add(...)` does not return created chunk IDs, so `DocumentRecord.chunkIds` is populated as an empty list at ingest time. As a result the delete endpoint will remove the registry entry and stored file (if present), but will not remove vectors from ChromaDB until `chunkIds` are available. To fully enable vector deletion:
+
+- Upgrade to a VectorStore implementation that returns created IDs from `add(...)`, then capture and persist those IDs during ingestion.
+- Or generate deterministic chunk IDs before calling `vectorStore.add(...)` (if the API supports providing IDs) and persist them.
+
+Once `chunkIds` are stored, `DELETE /api/v1/documents/{id}` will remove the corresponding vectors from ChromaDB as well.
 
 ---
 

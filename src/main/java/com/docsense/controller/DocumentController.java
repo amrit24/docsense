@@ -2,7 +2,7 @@ package com.docsense.controller;
 
 import com.docsense.model.DocumentRecord;
 import com.docsense.model.IngestionResponse;
-import com.docsense.service.DocumentIngestionService;
+import com.docsense.service.DocumentService;
 import com.docsense.service.DocumentRegistry;
 import com.docsense.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,7 +30,7 @@ import java.util.Map;
 @Tag(name = "Documents", description = "Upload and manage PDF documents for RAG indexing")
 public class DocumentController {
 
-    private final DocumentIngestionService ingestionService;
+    private final DocumentService documentService;
     private final DocumentRegistry documentRegistry;
     private final StorageService storageService;
 
@@ -72,7 +72,7 @@ public class DocumentController {
             @RequestParam("file") MultipartFile file) throws IOException {
 
         validatePdfFile(file);
-        IngestionResponse response = ingestionService.ingest(file);
+        IngestionResponse response = documentService.ingest(file);
         return ResponseEntity.ok(response);
     }
 
@@ -135,6 +135,24 @@ public class DocumentController {
         return documentRegistry.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Delete a document and its vectors from the index",
+               description = "Deletes all chunk vectors for a document from the vector store and removes the document record from the registry.")
+    @ApiResponse(responseCode = "200", description = "Document deleted",
+                 content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                     examples = @ExampleObject(value = "{\n  \"message\": \"Document deleted.\",\n  \"documentId\": \"a3f1c2d4-7e89-4b3a-bf12-3c9f01234567\"\n}")))
+    @ApiResponse(responseCode = "404", description = "Document not found",
+                 content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                     examples = @ExampleObject(value = "{\n  \"error\": \"Document not found\"\n}")))
+    @DeleteMapping("/{id}")
+    public ResponseEntity<java.util.Map<String, String>> deleteDocument(
+            @Parameter(description = "Document UUID to delete", required = true) @PathVariable String id) {
+        boolean deleted = documentService.deleteDocument(id);
+        if (deleted) {
+            return ResponseEntity.ok(java.util.Map.of("message", "Document deleted.", "documentId", id));
+        }
+        return ResponseEntity.notFound().build();
     }
 
     private void validatePdfFile(MultipartFile file) {

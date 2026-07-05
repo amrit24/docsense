@@ -50,7 +50,7 @@ server:
     threads:
       virtual: true   # Java 21 virtual threads — reduces blocking overhead on LLM/embedding calls
 
-# Swagger UI — http://localhost:8080/swagger-ui.html
+# Swagger UI — http://localhost:8085/swagger-ui.html
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

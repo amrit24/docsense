@@ -106,7 +106,7 @@ src/main/java/com/ai/learn/
 │   └── HealthController.java         # GET  /api/v1/health
 │
 ├── service/
-│   ├── DocumentIngestionService.java # save → parse → chunk → embed → store
+│   ├── DocumentService.java # save → parse → chunk → embed → store + deletion
 │   ├── DocumentRegistry.java         # JSON-backed catalog of ingested documents (persisted across restarts)
 │   ├── RagQueryService.java          # embed → search → prompt → answer
 │   └── StorageService.java           # Disk I/O for uploaded PDFs
@@ -339,6 +339,14 @@ curl -X POST http://localhost:8085/api/v1/chat \
 
 ```bash
 curl http://localhost:8085/api/v1/documents
+```
+
+### Delete a document
+
+Deletes the document record and (if available) its vectors from the vector store.
+
+```bash
+curl -X DELETE http://localhost:8085/api/v1/documents/a3f1c2d4-7e89-4b3a-bf12-3c9f01234567
 ```
 
 ---
