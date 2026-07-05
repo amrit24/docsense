@@ -124,6 +124,33 @@
       <!-- Upload info (e.g. duplicate detected) -->
       <p x-show="uploadInfo" x-cloak x-text="uploadInfo"
         class="text-xs text-green-700 bg-green-50 px-2 py-1 rounded mt-2 text-center"></p>
+      <p x-show="deleteInfo" x-cloak x-text="deleteInfo"
+        class="text-xs text-green-700 bg-green-50 px-2 py-1 rounded mt-2 text-center"></p>
+      <p x-show="deleteError" x-cloak x-text="deleteError"
+        class="text-xs text-red-500 bg-red-50 px-2 py-1 rounded mt-2 text-center"></p>
+    </div>
+
+    <div x-show="deleteDialog" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+      <div @click.stop class="w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-200">
+          <p class="text-sm font-semibold text-slate-900">Confirm delete</p>
+          <p class="text-sm text-slate-500 mt-1" x-text="deleteTarget ? 'Remove ' + deleteTarget.fileName + ' from the index?' : ''"></p>
+        </div>
+        <div class="px-6 py-5">
+          <p class="text-sm text-slate-500">This action permanently deletes the document and its indexed search data. It cannot be undone.</p>
+          <p x-show="deleteError" x-cloak class="text-sm text-red-600 mt-3" x-text="deleteError"></p>
+          <div class="mt-5 flex flex-wrap gap-3 justify-end">
+            <button @click="cancelDelete()" type="button"
+                    class="rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50">
+              Cancel
+            </button>
+            <button @click="deleteDocument(deleteTarget)" type="button"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700">
+              Delete document
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Document list -->
@@ -159,22 +186,30 @@
       <!-- Doc cards -->
       <div class="space-y-2">
         <template x-for="doc in docs" :key="doc.documentId">
-          <div @click="toggleScope(doc)"
+          <div class="relative border rounded-lg p-3 transition-all duration-150"
                :class="scopedDoc && scopedDoc.documentId === doc.documentId
                          ? 'border-brand-400 bg-brand-50 ring-1 ring-brand-300'
-                         : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'"
-               class="border rounded-lg p-3 cursor-pointer transition-all duration-150">
-            <div class="flex items-start gap-2">
+                         : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'">
+            <button @click.stop="promptDelete(doc)"
+                    class="absolute top-3 right-3 text-slate-400 hover:text-red-600 transition-colors"
+                    title="Delete document">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+              </svg>
+            </button>
+            <div @click="toggleScope(doc)" class="flex items-start gap-2 cursor-pointer pr-10">
               <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
               </svg>
+              <span x-show="scopedDoc && scopedDoc.documentId === doc.documentId"
+                    class="mt-2 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-brand-500"
+                    title="Selected document"></span>
               <div class="min-w-0 flex-1">
                 <p class="text-xs font-medium text-slate-700 truncate" x-text="doc.fileName"></p>
                 <p class="text-xs text-slate-400 mt-0.5"
                    x-text="doc.pageCount + ' pages · ' + doc.chunksStored + ' chunks'"></p>
               </div>
-              <div x-show="scopedDoc && scopedDoc.documentId === doc.documentId"
-                   class="shrink-0 w-2 h-2 rounded-full bg-brand-500 mt-1.5"></div>
             </div>
           </div>
         </template>
@@ -351,9 +386,14 @@ function app() {
     asking:      false,
     uploading:   false,
     uploadStatus:'Uploading…',
-      uploadError: '',
-      uploadInfo:  '',
-      uploadInfoTimer: null,
+    uploadError: '',
+    uploadInfo:  '',
+    uploadInfoTimer: null,
+    deleteInfo:  '',
+    deleteError: '',
+    deleteInfoTimer: null,
+    deleteDialog: false,
+    deleteTarget: null,
     hints: [
       'Explain the Singleton design pattern.',
       'What are the key topics covered in this document?',
@@ -383,6 +423,18 @@ function app() {
       this.scopedDoc = this.scopedDoc && this.scopedDoc.documentId === doc.documentId ? null : doc;
     },
 
+    promptDelete(doc) {
+      this.deleteError = '';
+      this.deleteInfo = '';
+      this.deleteTarget = doc;
+      this.deleteDialog = true;
+    },
+
+    cancelDelete() {
+      this.deleteDialog = false;
+      this.deleteTarget = null;
+    },
+
     // — upload —
     onDrop(event) {
       event.currentTarget.classList.remove('drop-active');
@@ -403,7 +455,10 @@ function app() {
       }
       this.uploadError  = '';
       this.uploadInfo   = '';
+      this.deleteInfo   = '';
+      this.deleteError  = '';
       if (this.uploadInfoTimer) { clearTimeout(this.uploadInfoTimer); this.uploadInfoTimer = null; }
+      if (this.deleteInfoTimer) { clearTimeout(this.deleteInfoTimer); this.deleteInfoTimer = null; }
       this.uploading    = true;
       this.uploadStatus = 'Uploading…';
 
@@ -433,6 +488,36 @@ function app() {
       } finally {
         this.uploading = false;
         this.uploadStatus = 'Uploading…';
+      }
+    },
+
+    async deleteDocument(doc) {
+      this.deleteInfo  = '';
+      this.deleteError = '';
+      if (this.deleteInfoTimer) { clearTimeout(this.deleteInfoTimer); this.deleteInfoTimer = null; }
+
+      try {
+        const res = await fetch(`/api/v1/documents/${doc.documentId}`, { method: 'DELETE' });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
+
+        if (!res.ok) {
+          this.deleteError = data.message || data.error || 'Failed to delete document.';
+          return;
+        }
+
+        this.deleteDialog = false;
+        this.deleteTarget = null;
+        this.deleteInfo = data.message || 'Document deleted successfully.';
+        this.deleteInfoTimer = setTimeout(() => { this.deleteInfo = ''; this.deleteInfoTimer = null; }, 6000);
+
+        this.docs = this.docs.filter(d => d.documentId !== doc.documentId);
+        if (this.scopedDoc && this.scopedDoc.documentId === doc.documentId) {
+          this.scopedDoc = null;
+        }
+      } catch (e) {
+        this.deleteError = 'Network error — is the server running?';
       }
     },
 
