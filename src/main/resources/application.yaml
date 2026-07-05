@@ -41,7 +41,7 @@ storage:
   documents-path: storage/documents
 
 server:
-  port: 8080
+  port: 8085
   error:
     whitelabel:
       enabled: false

@@ -103,7 +103,7 @@ The AI is essentially open-book — it has the relevant pages in front of it whe
 │                                                      │
 │  ┌─────────────────────────────────────────────┐    │
 │  │         Spring Boot Application              │    │
-│  │         (this project, port 8080)            │    │
+│  │         (this project, port 8085)            │    │
 │  │                                              │    │
 │  │  Receives HTTP requests                      │    │
 │  │  Orchestrates the RAG pipeline               │    │
@@ -725,7 +725,7 @@ storage:
   documents-path: storage/documents   # Relative to working directory
 
 server:
-  port: 8080
+  port: 8085
 
 # Swagger UI
 springdoc:

@@ -15,8 +15,8 @@ Built with **Spring Boot 3.5**, **Spring AI 1.0.1**, **Ollama**, and **ChromaDB*
 | Source citations | Every answer includes the exact page numbers and filenames it was drawn from |
 | Scoped search | Optionally restrict a question to one specific document by its UUID |
 | Multi-document | Index as many PDFs as you want; all are searched unless filtered |
-| Swagger UI | Interactive API docs at `http://localhost:8080/swagger-ui.html` |
-| Web UI | Built-in chat interface at `http://localhost:8080` — no separate server needed |
+| Swagger UI | Interactive API docs at `http://localhost:8085/swagger-ui.html` |
+| Web UI | Built-in chat interface at `http://localhost:8085` — no separate server needed |
 | Fully local | No OpenAI, no cloud APIs — Ollama + ChromaDB run entirely on your machine |
 
 ---
@@ -27,7 +27,7 @@ Built with **Spring Boot 3.5**, **Spring AI 1.0.1**, **Ollama**, and **ChromaDB*
                         User
                           │
                           ▼
-               Spring Boot REST API (:8080)
+               Spring Boot REST API (:8085)
                           │
            ┌──────────────┴──────────────┐
            │                             │
@@ -204,14 +204,14 @@ Expected: `{"nanosecond heartbeat": ...}`
 
 Open the project in **IntelliJ**, confirm JDK 21 is set under `File → Project Structure → Project`, then run `DocSense.java`.
 
-The app starts on `http://localhost:8080`. On first startup it auto-creates the `docsense-documents` collection in ChromaDB.
+The app starts on `http://localhost:8085`. On first startup it auto-creates the `docsense-documents` collection in ChromaDB.
 
 ---
 
 ### Step 5 — Verify everything is connected
 
 ```bash
-curl http://localhost:8080/api/v1/health
+curl http://localhost:8085/api/v1/health
 ```
 
 Expected:
@@ -233,7 +233,7 @@ Expected:
 A built-in chat interface is available at:
 
 ```
-http://localhost:8080
+http://localhost:8085
 ```
 
 No separate server or build step needed — Spring Boot serves `src/main/resources/static/index.html` directly.
@@ -261,13 +261,13 @@ No separate server or build step needed — Spring Boot serves `src/main/resourc
 Interactive API documentation is available at:
 
 ```
-http://localhost:8080/swagger-ui.html
+http://localhost:8085/swagger-ui.html
 ```
 
 Raw OpenAPI spec (JSON):
 
 ```
-http://localhost:8080/api-docs
+http://localhost:8085/api-docs
 ```
 
 ---
@@ -277,7 +277,7 @@ http://localhost:8080/api-docs
 ### Upload a PDF
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/documents/upload \
+curl -X POST http://localhost:8085/api/v1/documents/upload \
   -F "file=@/path/to/JavaDesignPatterns.pdf"
 ```
 
@@ -303,7 +303,7 @@ Save the `documentId` — use it to scope questions to this specific document.
 ### Ask a question
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/chat \
+curl -X POST http://localhost:8085/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{"question": "Explain the Singleton pattern."}'
 ```
@@ -323,7 +323,7 @@ Response:
 Scope to one document using its `documentId`:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/chat \
+curl -X POST http://localhost:8085/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{
     "question": "Explain the Singleton pattern.",
@@ -336,7 +336,7 @@ curl -X POST http://localhost:8080/api/v1/chat \
 ### List indexed documents
 
 ```bash
-curl http://localhost:8080/api/v1/documents
+curl http://localhost:8085/api/v1/documents
 ```
 
 ---
@@ -344,7 +344,7 @@ curl http://localhost:8080/api/v1/documents
 ### Get a specific document record
 
 ```bash
-curl http://localhost:8080/api/v1/documents/a3f1c2d4-7e89-4b3a-bf12-3c9f01234567
+curl http://localhost:8085/api/v1/documents/a3f1c2d4-7e89-4b3a-bf12-3c9f01234567
 ```
 
 ---
