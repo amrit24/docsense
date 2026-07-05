@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DocSense</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/java.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/languages/xml.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0ea5e9', 600:'#0284c7', 700:'#0369a1' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .chat-bubble-user  { background: #0ea5e9; color: #fff; border-radius: 1rem 1rem 0.25rem 1rem; }
+    .chat-bubble-ai    { background: #f1f5f9; color: #1e293b; border-radius: 1rem 1rem 1rem 0.25rem; }
+    .drop-active       { border-color: #0ea5e9 !important; background: #f0f9ff !important; }
+    .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    /* Markdown prose styles inside AI bubbles */
+    .prose-ai p              { margin: 0 0 0.6em; line-height: 1.65; }
+    .prose-ai p:last-child   { margin-bottom: 0; }
+    .prose-ai h1,.prose-ai h2,.prose-ai h3 { font-weight: 600; margin: 0.8em 0 0.3em; line-height: 1.3; }
+    .prose-ai h1             { font-size: 1.1em; }
+    .prose-ai h2             { font-size: 1.05em; }
+    .prose-ai h3             { font-size: 1em; }
+    .prose-ai ul,.prose-ai ol{ margin: 0.4em 0 0.6em 1.2em; }
+    .prose-ai li             { margin-bottom: 0.2em; }
+    .prose-ai code           { font-family: ui-monospace,monospace; font-size: 0.85em;
+                               background: #e2e8f0; padding: 0.15em 0.4em; border-radius: 4px; }
+    .prose-ai pre            { margin: 0.6em 0; border-radius: 8px; overflow: hidden; }
+    .prose-ai pre code       { background: transparent; padding: 0; font-size: 0.82em;
+                               display: block; padding: 1em; overflow-x: auto; }
+    .prose-ai strong         { font-weight: 600; }
+    .prose-ai blockquote     { border-left: 3px solid #cbd5e1; padding-left: 0.75em;
+                               color: #64748b; margin: 0.5em 0; }
+    .prose-ai a              { color: #0284c7; text-decoration: underline; }
+    @keyframes pulse-dot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+    .typing-dot { display:inline-block; width:6px; height:6px; margin:0 2px; background:#64748b;
+                  border-radius:50%; animation: pulse-dot 1.2s infinite ease-in-out; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans antialiased" x-data="app()" x-init="init()">
+
+<!-- ── Header ── -->
+<header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+  <div class="flex items-center gap-2">
+    <svg class="w-7 h-7 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0121 9.414V19a2 2 0 01-2 2z"/>
+    </svg>
+    <span class="text-xl font-semibold text-slate-800 tracking-tight">DocSense</span>
+    <span class="text-xs text-slate-400 ml-1 hidden sm:inline">Local PDF Q&amp;A</span>
+  </div>
+  <div class="flex items-center gap-3">
+    <span x-show="docs.length > 0" x-cloak
+          class="text-xs bg-brand-100 text-brand-700 px-2.5 py-1 rounded-full font-medium"
+          x-text="docs.length + ' doc' + (docs.length !== 1 ? 's' : '') + ' indexed'">
+    </span>
+    <a href="/swagger-ui.html" target="_blank"
+       class="text-xs text-slate-400 hover:text-brand-600 transition-colors">API docs</a>
+  </div>
+</header>
+
+<!-- ── Main layout ── -->
+<div class="flex h-[calc(100vh-57px)]">
+
+  <!-- ── Sidebar ── -->
+  <aside class="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden">
+
+    <!-- Upload zone -->
+    <div class="p-4 border-b border-slate-100">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Upload PDF</p>
+      <div id="dropzone"
+           class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer
+                  hover:border-brand-400 hover:bg-brand-50 transition-all duration-200 relative"
+           @click="$refs.fileInput.click()"
+           @dragover.prevent="$event.currentTarget.classList.add('drop-active')"
+           @dragleave.prevent="$event.currentTarget.classList.remove('drop-active')"
+           @drop.prevent="onDrop($event)">
+        <input type="file" accept=".pdf" x-ref="fileInput" class="hidden" @change="onFileSelect($event)" />
+        <template x-if="!uploading">
+          <div>
+            <svg class="w-8 h-8 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <p class="text-sm text-slate-500">Drop PDF here</p>
+            <p class="text-xs text-slate-400 mt-0.5">or click to browse</p>
+          </div>
+        </template>
+        <template x-if="uploading">
+          <div class="py-1">
+            <svg class="w-6 h-6 text-brand-500 mx-auto mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+            <p class="text-sm text-brand-600 font-medium" x-text="uploadStatus"></p>
+          </div>
+        </template>
+      </div>
+      <!-- Upload error -->
+      <p x-show="uploadError" x-cloak x-text="uploadError"
+         class="text-xs text-red-500 mt-2 text-center"></p>
+    </div>
+
+    <!-- Document list -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin p-4">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Documents</p>
+        <button @click="loadDocs()" title="Refresh"
+                class="text-slate-400 hover:text-brand-600 transition-colors">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Empty state -->
+      <div x-show="docs.length === 0 && !docsLoading" x-cloak class="text-center py-8">
+        <svg class="w-10 h-10 text-slate-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        <p class="text-xs text-slate-400">No documents yet</p>
+        <p class="text-xs text-slate-300 mt-0.5">Upload a PDF to get started</p>
+      </div>
+
+      <!-- Loading shimmer -->
+      <div x-show="docsLoading" x-cloak class="space-y-2">
+        <template x-for="i in 3">
+          <div class="h-14 bg-slate-100 rounded-lg animate-pulse"></div>
+        </template>
+      </div>
+
+      <!-- Doc cards -->
+      <div class="space-y-2">
+        <template x-for="doc in docs" :key="doc.documentId">
+          <div @click="toggleScope(doc)"
+               :class="scopedDoc && scopedDoc.documentId === doc.documentId
+                         ? 'border-brand-400 bg-brand-50 ring-1 ring-brand-300'
+                         : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'"
+               class="border rounded-lg p-3 cursor-pointer transition-all duration-150">
+            <div class="flex items-start gap-2">
+              <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
+              </svg>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-slate-700 truncate" x-text="doc.fileName"></p>
+                <p class="text-xs text-slate-400 mt-0.5"
+                   x-text="doc.pageCount + ' pages · ' + doc.chunksStored + ' chunks'"></p>
+              </div>
+              <div x-show="scopedDoc && scopedDoc.documentId === doc.documentId"
+                   class="shrink-0 w-2 h-2 rounded-full bg-brand-500 mt-1.5"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Scope indicator -->
+    <div x-show="scopedDoc" x-cloak
+         class="px-4 py-2.5 bg-brand-50 border-t border-brand-100 flex items-center justify-between">
+      <p class="text-xs text-brand-700 truncate mr-2">
+        Scoped to: <span class="font-medium" x-text="scopedDoc && scopedDoc.fileName"></span>
+      </p>
+      <button @click="scopedDoc = null"
+              class="text-brand-400 hover:text-brand-700 shrink-0 transition-colors" title="Clear scope">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ── Chat panel ── -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Messages -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin px-6 py-6 space-y-6" id="chatMessages" x-ref="messages">
+
+      <!-- Welcome state -->
+      <div x-show="messages.length === 0" x-cloak class="flex flex-col items-center justify-center h-full text-center pb-12">
+        <div class="w-16 h-16 bg-brand-100 rounded-2xl flex items-center justify-center mb-4">
+          <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold text-slate-700 mb-1">Ask your documents anything</h2>
+        <p class="text-sm text-slate-400 max-w-sm">Upload a PDF, then type a question. Answers are sourced strictly from your documents — no hallucination.</p>
+        <div class="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm">
+          <template x-for="hint in hints">
+            <button @click="question = hint; $refs.input.focus()"
+                    class="text-left text-sm bg-white border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl
+                           hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50 transition-all duration-150"
+                    x-text="hint">
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Message list -->
+      <template x-for="(msg, idx) in messages" :key="idx">
+        <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+          <div :class="msg.role === 'user' ? 'max-w-lg' : 'max-w-2xl w-full'">
+
+            <!-- User bubble -->
+            <template x-if="msg.role === 'user'">
+              <div class="chat-bubble-user px-4 py-3 text-sm leading-relaxed shadow-sm" x-text="msg.content"></div>
+            </template>
+
+            <!-- AI bubble -->
+            <template x-if="msg.role === 'ai'">
+              <div>
+                <!-- Typing indicator -->
+                <template x-if="msg.loading">
+                  <div class="chat-bubble-ai px-4 py-3 shadow-sm inline-flex items-center gap-1">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                  </div>
+                </template>
+                <!-- Answer -->
+                <template x-if="!msg.loading && !msg.error">
+                  <div>
+                    <div class="chat-bubble-ai px-4 py-3 text-sm leading-relaxed shadow-sm prose-ai"
+                         x-html="renderMarkdown(msg.content)"></div>
+                    <!-- Sources -->
+                    <template x-if="msg.sources && msg.sources.length > 0">
+                      <div class="mt-2 flex flex-wrap gap-1.5">
+                        <template x-for="src in msg.sources" :key="src.file + src.page">
+                          <span class="inline-flex items-center gap-1 text-xs bg-white border border-slate-200
+                                       text-slate-500 px-2.5 py-1 rounded-full shadow-sm">
+                            <svg class="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/>
+                            </svg>
+                            <span x-text="src.file"></span>
+                            <span class="text-slate-400">p.<span x-text="src.page"></span></span>
+                          </span>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <!-- Error -->
+                <template x-if="msg.error">
+                  <div class="chat-bubble-ai px-4 py-3 text-sm text-red-500 shadow-sm" x-text="msg.content"></div>
+                </template>              </div>
+            </template>
+
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- Input bar -->
+    <div class="border-t border-slate-200 bg-white px-4 py-3">
+      <!-- Scope pill -->
+      <div x-show="scopedDoc" x-cloak class="mb-2">
+        <span class="inline-flex items-center gap-1.5 text-xs bg-brand-100 text-brand-700 px-2.5 py-1 rounded-full">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/>
+          </svg>
+          Searching in: <span class="font-medium" x-text="scopedDoc && scopedDoc.fileName"></span>
+          <button @click="scopedDoc = null" class="ml-0.5 hover:text-brand-900">✕</button>
+        </span>
+      </div>
+
+      <form @submit.prevent="sendMessage()" class="flex items-end gap-2">
+        <textarea
+          x-ref="input"
+          x-model="question"
+          @keydown.enter.exact.prevent="sendMessage()"
+          @keydown.enter.shift.exact="/* allow newline */"
+          :disabled="asking"
+          rows="1"
+          placeholder="Ask a question about your documents…"
+          class="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800
+                 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent
+                 disabled:opacity-50 transition-all duration-150 max-h-32 overflow-y-auto scrollbar-thin"
+          @input="autoResize($refs.input)"
+        ></textarea>
+        <button type="submit"
+                :disabled="!question.trim() || asking"
+                class="shrink-0 w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center
+                       hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed
+                       transition-all duration-150 shadow-sm hover:shadow-md">
+          <template x-if="!asking">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </template>
+          <template x-if="asking">
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+            </svg>
+          </template>
+        </button>
+      </form>
+      <p class="text-xs text-slate-400 mt-1.5 text-center">Enter to send · Shift+Enter for new line</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function app() {
+  // Configure marked with highlight.js once
+  marked.setOptions({
+    highlight: (code, lang) => {
+      if (lang && hljs.getLanguage(lang)) {
+        return hljs.highlight(code, { language: lang }).value;
+      }
+      return hljs.highlightAuto(code).value;
+    },
+    breaks: true,
+    gfm: true,
+  });
+
+  return {    // — state —
+    docs:        [],
+    docsLoading: false,
+    scopedDoc:   null,
+    messages:    [],
+    question:    '',
+    asking:      false,
+    uploading:   false,
+    uploadStatus:'Uploading…',
+    uploadError: '',
+    hints: [
+      'Explain the Singleton design pattern.',
+      'What are the key topics covered in this document?',
+      'Summarise chapter 1.',
+    ],
+
+    // — lifecycle —
+    init() {
+      this.loadDocs();
+    },
+
+    // — documents —
+    async loadDocs() {
+      this.docsLoading = true;
+      try {
+        const res  = await fetch('/api/v1/documents');
+        const data = await res.json();
+        this.docs  = (data.documents || []).slice().reverse();
+      } catch (e) {
+        console.error('Failed to load documents', e);
+      } finally {
+        this.docsLoading = false;
+      }
+    },
+
+    toggleScope(doc) {
+      this.scopedDoc = this.scopedDoc && this.scopedDoc.documentId === doc.documentId ? null : doc;
+    },
+
+    // — upload —
+    onDrop(event) {
+      event.currentTarget.classList.remove('drop-active');
+      const file = event.dataTransfer.files[0];
+      if (file) this.uploadFile(file);
+    },
+
+    onFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) this.uploadFile(file);
+      event.target.value = '';
+    },
+
+    async uploadFile(file) {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        this.uploadError = 'Only PDF files are supported.';
+        return;
+      }
+      this.uploadError  = '';
+      this.uploading    = true;
+      this.uploadStatus = 'Uploading…';
+
+      const form = new FormData();
+      form.append('file', file);
+
+      try {
+        const res  = await fetch('/api/v1/documents/upload', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!res.ok) {
+          this.uploadError = data.detail || data.message || 'Upload failed.';
+          return;
+        }
+        this.uploadStatus = 'Processing…';
+        await this.loadDocs();
+        // Auto-scope to the freshly uploaded doc
+        const fresh = this.docs.find(d => d.documentId === data.documentId);
+        if (fresh) this.scopedDoc = fresh;
+      } catch (e) {
+        this.uploadError = 'Network error — is the server running?';
+      } finally {
+        this.uploading = false;
+        this.uploadStatus = 'Uploading…';
+      }
+    },
+
+    // — chat —
+    async sendMessage() {
+      const q = this.question.trim();
+      if (!q || this.asking) return;
+
+      this.question = '';
+      this.$nextTick(() => this.autoResize(this.$refs.input));
+
+      // Push user bubble
+      this.messages.push({ role: 'user', content: q });
+      // Push loading AI bubble and track its index
+      const aiIdx = this.messages.length;
+      this.messages.push({ role: 'ai', content: '', sources: [], loading: true, error: false });
+      this.asking = true;
+      this.scrollToBottom();
+
+      try {
+        const body = { question: q };
+        if (this.scopedDoc) body.documentId = this.scopedDoc.documentId;
+
+        const res  = await fetch('/api/v1/chat', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          this.messages[aiIdx] = { role: 'ai', content: data.detail || data.message || 'Something went wrong.', sources: [], loading: false, error: true };
+        } else {
+          this.messages[aiIdx] = { role: 'ai', content: data.answer, sources: data.sources || [], loading: false, error: false };
+        }
+      } catch (e) {
+        this.messages[aiIdx] = { role: 'ai', content: 'Network error — is the server running?', sources: [], loading: false, error: true };
+      } finally {
+        this.asking = false;
+        this.$nextTick(() => this.scrollToBottom());
+      }
+    },
+
+    // — helpers —
+    renderMarkdown(text) {
+      return marked.parse(text || '');
+    },
+
+    scrollToBottom() {      this.$nextTick(() => {
+        const el = this.$refs.messages;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    },
+
+    autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+    }
+  };
+}
+</script>
+</body>
+</html>

@@ -42,6 +42,9 @@ storage:
 
 server:
   port: 8080
+  error:
+    whitelabel:
+      enabled: false
   tomcat:
     threads:
       virtual: true   # Java 21 virtual threads — reduces blocking overhead on LLM/embedding calls
