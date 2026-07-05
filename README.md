@@ -351,6 +351,36 @@ curl http://localhost:8085/api/v1/documents/a3f1c2d4-7e89-4b3a-bf12-3c9f01234567
 
 ---
 
+## Duplicate detection
+
+DocSense now detects duplicate PDF uploads by computing a SHA-256 hash of each file's contents during upload. If an uploaded file's hash matches an existing record in the registry, the app skips re-ingestion (no new embeddings are created) and returns the existing `documentId` instead.
+
+Behavior summary:
+- On first upload of a file: the PDF is saved, parsed, chunked, embedded, and stored in ChromaDB as before. The computed `sha256` is stored with the document record.
+- On re-upload of the identical file bytes: the server returns a friendly message and the existing `documentId`. The UI shows: "This PDF has already been uploaded — using the existing index." No new vectors are written to ChromaDB.
+- Records created before this feature was added may not contain `sha256`. These records will not be matched until a migration is run (see below).
+
+Migration utility:
+
+To populate missing hashes for existing registry entries, a small one-time migration utility has been added: `com.docsense.tools.RegistryHashMigration`.
+
+Run it from the project root:
+
+```bash
+./mvnw -DskipTests compile org.codehaus.mojo:exec-maven-plugin:3.1.0:java \
+  -Dexec.mainClass=com.docsense.tools.RegistryHashMigration
+```
+
+What the migration does:
+- Reads `storage/registry.json` and computes SHA-256 for any record missing a `sha256` field by reading the file at `storedPath`.
+- Writes the updated registry back to `storage/registry.json` and creates a backup at `storage/registry.json.bak` before writing.
+- Skips records where the stored file is missing and prints a message for any skipped records.
+
+Notes and cleanup:
+- The migration enables future duplicate detection but does not remove already-existing duplicate embeddings from ChromaDB. If you want to deduplicate vectors, you'll need a separate cleanup step against your ChromaDB collection (recommended only if you understand ChromaDB collection semantics and have a backup).
+- The web UI will display a friendly green message when a duplicate upload is detected and will auto-hide it after a few seconds.
+
+
 ## Configuration
 
 All tuning knobs are in `src/main/resources/application.yaml`:

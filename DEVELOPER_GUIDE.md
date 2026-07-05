@@ -756,11 +756,13 @@ springdoc:
 
 ---
 
-### Duplicate document handling
+### ~~Duplicate document handling~~ — resolved
 
-**Current behaviour:** Uploading the same PDF twice creates a second set of chunks in ChromaDB with a new `documentId`. The original chunks remain. This means search results may contain duplicates.
+**Previous behaviour:** Uploading the same PDF twice created a second set of chunks in ChromaDB with a new `documentId`. The original chunks remained and the registry did not store a content hash, so duplicates accumulated.
 
-**Fix:** Hash the file contents on upload. If a matching hash is found in the registry, skip re-ingestion and return the existing `documentId`.
+**Current behaviour:** On upload the application computes a SHA-256 of the file contents. If the hash matches an existing registry record, the app skips re-ingestion (no new embeddings are stored) and returns the existing `documentId`. The `DocumentRecord` now stores `sha256` and `DocumentRegistry` provides a fast `findByHash()` lookup. The web UI shows a friendly info message when a duplicate is detected.
+
+**Migration:** Existing records without `sha256` can be patched using the included one-time migration utility `com.docsense.tools.RegistryHashMigration` which reads `storage/registry.json`, computes missing hashes (reading each file at its `storedPath`), and writes the updated registry (backing up the original to `storage/registry.json.bak`).
 
 ---
 
