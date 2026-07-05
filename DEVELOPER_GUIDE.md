@@ -293,7 +293,7 @@ Step 6: Embed + store
          → This is the slow step for large PDFs (~5-10 seconds per page on M1)
 
 Step 7: Register
-         DocumentRegistry stores a DocumentRecord in memory:
+         DocumentRegistry stores a DocumentRecord in memory and persists to disk:
            { documentId, fileName, pageCount, chunksStored, uploadedAt }
 
 Step 8: Return response
@@ -470,11 +470,17 @@ Consider a sentence that starts at char 980 of a page. With no overlap, it would
 
 ### 9.6 `service/DocumentRegistry.java`
 
-An in-memory `ConcurrentHashMap<String, DocumentRecord>` keyed by `documentId`.
+Uses a `ConcurrentHashMap<String, DocumentRecord>` as the in-memory working store, backed by a JSON file on disk (`storage/registry.json`). Records survive application restarts.
 
-**Why in-memory?** Simplicity — this is a learning project. The tradeoff is that the registry is cleared on restart. The PDFs and their embeddings in ChromaDB persist, but the registry lookup doesn't.
+**Write strategy — write-through:** every `register()` call updates the map and immediately flushes the full map to JSON. Simple and safe — no background thread, no risk of losing a record between flushes.
 
-**Thread safety:** `ConcurrentHashMap` is used because HTTP requests are handled on multiple threads simultaneously.
+**Startup:** `@PostConstruct loadFromDisk()` reads `registry.json` if it exists and populates the map. If the file is missing or corrupt, the registry starts empty and a warning is logged — the app still starts normally.
+
+**Thread safety:** `ConcurrentHashMap` for concurrent map reads/writes. `saveToDisk()` is `synchronized` to prevent two threads from writing the file simultaneously.
+
+**Jackson setup:** `ObjectMapper` is configured with `JavaTimeModule` and `WRITE_DATES_AS_TIMESTAMPS=false` so `Instant` fields serialize as ISO-8601 strings (e.g. `"2026-07-05T10:30:00Z"`) rather than epoch numbers.
+
+**`DocumentRecord` deserialization:** the model uses `@NoArgsConstructor` + `@AllArgsConstructor` alongside `@Builder` so Jackson can instantiate it via the no-args constructor and populate fields via setters (`@Data`).
 
 ---
 
@@ -742,11 +748,11 @@ springdoc:
 
 ## 12. Known limitations and future improvements
 
-### DocumentRegistry is in-memory
+### ~~DocumentRegistry is in-memory~~ — resolved
 
-**Current behaviour:** The registry of uploaded documents (documentId → filename, pageCount, etc.) is stored in a `ConcurrentHashMap`. When the app restarts, all records are lost. The PDFs on disk and their embeddings in ChromaDB are still there — questions still work — but you can't look up a document by its `documentId` until you re-upload it.
+**Previous behaviour:** The registry was a plain `ConcurrentHashMap` that was cleared on restart.
 
-**Fix:** Persist the registry to a file (JSON) or a database (H2, SQLite, or PostgreSQL).
+**Current behaviour:** The registry is backed by `storage/registry.json`. On startup, `DocumentRegistry` reads the file and repopulates the map. On every upload, the file is updated synchronously. Document records survive application restarts.
 
 ---
 

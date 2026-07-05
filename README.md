@@ -107,7 +107,7 @@ src/main/java/com/ai/learn/
 │
 ├── service/
 │   ├── DocumentIngestionService.java # save → parse → chunk → embed → store
-│   ├── DocumentRegistry.java         # In-memory catalog of ingested documents (session-scoped)
+│   ├── DocumentRegistry.java         # JSON-backed catalog of ingested documents (persisted across restarts)
 │   ├── RagQueryService.java          # embed → search → prompt → answer
 │   └── StorageService.java           # Disk I/O for uploaded PDFs
 │
@@ -126,6 +126,10 @@ src/main/resources/
 └── static/
     ├── index.html                    # Single-file web UI (Tailwind + Alpine.js)
     └── favicon.svg
+
+storage/                              # runtime — gitignored
+├── documents/                        # uploaded PDFs
+└── registry.json                     # persisted document registry
 ```
 
 ---
@@ -296,8 +300,6 @@ Response:
 
 Save the `documentId` — use it to scope questions to this specific document.
 
-> Note: The document registry is in-memory and resets on app restart. The PDF file and its embeddings in ChromaDB persist, but the `documentId` lookup will not be available after a restart.
-
 ---
 
 ### Ask a question
@@ -373,6 +375,7 @@ rag:
 
 storage:
   documents-path: storage/documents   # where uploaded PDFs are saved
+  registry-file: storage/registry.json  # persisted document registry
 ```
 
 **Swap the chat model** — any model pulled with `ollama pull` works:
@@ -419,4 +422,4 @@ Embedding is CPU-bound. A 300-page PDF may take 1–3 minutes on Intel Mac. On A
 Either the document hasn't been uploaded, or the question uses terminology different from what's in the document. Try rephrasing, or check that the upload completed successfully.
 
 **`documentId` not found after app restart**
-The `DocumentRegistry` is in-memory — it resets on restart. The PDF and embeddings are still in ChromaDB, so questions still work. Re-upload the PDF to get a new `documentId` for scoped queries.
+Re-upload the PDF to regenerate the registry entry. This should not happen under normal circumstances — the registry is persisted to `storage/registry.json` and reloaded on startup. If the file was deleted or corrupted, re-uploading will re-index the document and restore the entry.
