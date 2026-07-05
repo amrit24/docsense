@@ -17,9 +17,9 @@ This document explains every concept, every component, and every line of logic i
 7. [The Upload Pipeline — step by step](#7-the-upload-pipeline--step-by-step)
 8. [The Query Pipeline — step by step](#8-the-query-pipeline--step-by-step)
 9. [Code walkthrough — every file explained](#9-code-walkthrough--every-file-explained)
-10. [Configuration reference](#10-configuration-reference)
-11. [Known limitations and future improvements](#11-known-limitations-and-future-improvements)
-
+10. [Web UI — frontend explained](#10-web-ui--frontend-explained)
+11. [Configuration reference](#11-configuration-reference)
+12. [Known limitations and future improvements](#12-known-limitations-and-future-improvements)
 ---
 
 ## 1. What problem does this project solve?
@@ -573,7 +573,104 @@ RFC 7807 `ProblemDetail` is the Spring 6+ standard for error responses:
 
 ---
 
-## 10. Configuration reference
+## 10. Web UI — frontend explained
+
+The frontend lives entirely in `src/main/resources/static/index.html`. Spring Boot serves the `static/` directory automatically, so no separate web server is needed.
+
+**No build tooling.** All libraries load from CDN:
+
+| Library | Version | Role |
+|---|---|---|
+| Tailwind CSS | 3.x | Utility-class styling — no CSS files to maintain |
+| Alpine.js | 3.x | Reactive state and DOM updates in ~15KB |
+| marked.js | 9.x | Parses markdown in AI responses |
+| highlight.js | 11.x | Syntax highlights code blocks in AI responses |
+
+---
+
+### Layout
+
+```
+┌─────────────────────────────────────────────────┐
+│  Header: DocSense logo + doc count + API docs   │
+├──────────────┬──────────────────────────────────┤
+│  Sidebar     │  Chat panel                      │
+│              │                                  │
+│  Upload zone │  Message history                 │
+│  ──────────  │  (welcome screen when empty)     │
+│  Doc list    │                                  │
+│              │  ──────────────────────────────  │
+│  Scope pill  │  Input bar + send button         │
+└──────────────┴──────────────────────────────────┘
+```
+
+---
+
+### Alpine.js `app()` — state and methods
+
+The entire frontend state lives in one Alpine component returned by `app()`:
+
+```js
+{
+  docs:        [],       // list of DocumentRecord objects from GET /api/v1/documents
+  scopedDoc:   null,     // DocumentRecord to scope chat queries to, or null for all docs
+  messages:    [],       // chat history: [{ role, content, sources, loading, error }]
+  question:    '',       // current textarea value
+  asking:      false,    // true while waiting for /api/v1/chat response
+  uploading:   false,    // true while file upload is in progress
+}
+```
+
+**Key methods:**
+
+- `loadDocs()` — calls `GET /api/v1/documents`, populates the sidebar
+- `uploadFile(file)` — posts to `POST /api/v1/documents/upload`, refreshes doc list, auto-scopes to the new doc
+- `sendMessage()` — pushes a user bubble, then a loading AI bubble, calls `POST /api/v1/chat`, replaces the loading bubble with the response
+- `toggleScope(doc)` — sets or clears `scopedDoc`; when set, chat requests include `documentId`
+- `renderMarkdown(text)` — runs `marked.parse()` to convert the AI's response to HTML
+
+---
+
+### Reactivity fix — why array index assignment
+
+Alpine.js tracks changes at the array level. Mutating a nested object's property directly (e.g. `aiMsg.content = data.answer`) does not trigger a re-render. Instead, the message is replaced at its index:
+
+```js
+const aiIdx = this.messages.length;          // index of the loading bubble
+this.messages.push({ ..., loading: true });  // push placeholder
+
+// after API response:
+this.messages[aiIdx] = { role: 'ai', content: data.answer, sources: data.sources, loading: false, error: false };
+```
+
+This tells Alpine the array changed, so the DOM updates correctly.
+
+---
+
+### Markdown and code rendering
+
+marked.js is configured to use highlight.js for code blocks:
+
+```js
+marked.setOptions({
+  highlight: (code, lang) => {
+    if (lang && hljs.getLanguage(lang)) {
+      return hljs.highlight(code, { language: lang }).value;
+    }
+    return hljs.highlightAuto(code).value;
+  },
+  breaks: true,   // single newline → <br>
+  gfm: true,      // GitHub-flavoured markdown
+});
+```
+
+The rendered HTML is injected via Alpine's `x-html` directive on the AI bubble. Loaded languages: Java, JavaScript, Python, Bash, XML.
+
+Custom `.prose-ai` CSS classes in the `<style>` block control typography inside AI bubbles — paragraph spacing, heading sizes, inline code pills, pre/code blocks, blockquotes, and links.
+
+---
+
+## 11. Configuration reference
 
 Full `application.yaml` with every property explained:
 
@@ -643,7 +740,7 @@ springdoc:
 
 ---
 
-## 11. Known limitations and future improvements
+## 12. Known limitations and future improvements
 
 ### DocumentRegistry is in-memory
 

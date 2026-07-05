@@ -16,6 +16,7 @@ Built with **Spring Boot 3.5**, **Spring AI 1.0.1**, **Ollama**, and **ChromaDB*
 | Scoped search | Optionally restrict a question to one specific document by its UUID |
 | Multi-document | Index as many PDFs as you want; all are searched unless filtered |
 | Swagger UI | Interactive API docs at `http://localhost:8080/swagger-ui.html` |
+| Web UI | Built-in chat interface at `http://localhost:8080` — no separate server needed |
 | Fully local | No OpenAI, no cloud APIs — Ollama + ChromaDB run entirely on your machine |
 
 ---
@@ -68,6 +69,10 @@ Built with **Spring Boot 3.5**, **Spring AI 1.0.1**, **Ollama**, and **ChromaDB*
 | Ollama (nomic-embed-text) | latest | Local embedding model — converts text to vectors |
 | ChromaDB | 1.5.3 | Vector database — stores embeddings, performs cosine similarity search |
 | springdoc-openapi | 2.8.6 | Swagger UI and OpenAPI spec generation |
+| Tailwind CSS (CDN) | 3.x | Utility-first styling for the web UI |
+| Alpine.js (CDN) | 3.x | Lightweight reactivity for the web UI |
+| marked.js (CDN) | 9.x | Markdown rendering for AI responses |
+| highlight.js (CDN) | 11.x | Syntax highlighting in code blocks |
 
 ### Key Design Decisions
 
@@ -115,6 +120,12 @@ src/main/java/com/ai/learn/
 │
 └── exception/
     └── GlobalExceptionHandler.java   # RFC 7807 ProblemDetail error responses
+
+src/main/resources/
+├── application.yaml
+└── static/
+    ├── index.html                    # Single-file web UI (Tailwind + Alpine.js)
+    └── favicon.svg
 ```
 
 ---
@@ -214,6 +225,34 @@ Expected:
   "timestamp": "..."
 }
 ```
+
+---
+
+## Web UI
+
+A built-in chat interface is available at:
+
+```
+http://localhost:8080
+```
+
+No separate server or build step needed — Spring Boot serves `src/main/resources/static/index.html` directly.
+
+**Features:**
+- Drag-and-drop or click-to-browse PDF upload with a progress indicator
+- Document list in the sidebar — click any doc to scope all queries to it
+- Chat panel with markdown rendering and syntax-highlighted code blocks
+- Source citations rendered as pills below each answer (`filename · p.22`)
+- Enter to send, Shift+Enter for new line
+
+**Tech stack** (all loaded from CDN, zero build tooling):
+
+| Library | Purpose |
+|---|---|
+| Tailwind CSS | Styling |
+| Alpine.js | Reactive state and DOM updates |
+| marked.js | Markdown parsing for AI responses |
+| highlight.js | Syntax highlighting in code blocks |
 
 ---
 
