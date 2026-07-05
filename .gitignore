@@ -35,6 +35,7 @@ build/
 
 ### Local PDF Storage — ignore uploaded files but keep folder structure ###
 storage/documents/*
+storage/registry.json
 !storage/documents/.gitkeep
 
 ### macOS ###
@@ -47,3 +48,6 @@ storage/documents/*
 .env
 .env.*
 !.env.example
+
+## Temporary - To be removed when jenkins is integrate ###
+jenkinsFile
