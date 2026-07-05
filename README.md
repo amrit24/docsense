@@ -174,7 +174,7 @@ ollama list
 Run this from the **project directory**:
 
 ```bash
-cd /path/to/spring-ai
+cd /path/to/docsense
 docker compose up -d
 ```
 
@@ -363,7 +363,7 @@ ollama pull nomic-embed-text
 **`Connection refused` on port 8000**
 ChromaDB is not running, or you ran `docker compose` from the wrong directory:
 ```bash
-cd /path/to/spring-ai
+cd /path/to/docsense
 docker compose up -d
 ```
 
