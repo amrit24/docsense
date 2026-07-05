@@ -15,9 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -25,6 +26,8 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static java.nio.file.Files.newInputStream;
 
 /**
  * Orchestrates the full PDF ingestion and document lifecycle operations.
@@ -137,13 +140,10 @@ public class DocumentService {
     }
 
     private String computeSha256Hex(Path path) throws IOException {
-        try (InputStream in = java.nio.file.Files.newInputStream(path)) {
+        try (InputStream in = newInputStream(path)) {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             try (DigestInputStream dis = new DigestInputStream(in, md)) {
-                byte[] buffer = new byte[8192];
-                while (dis.read(buffer) != -1) {
-                    // read stream to update digest
-                }
+                dis.transferTo(OutputStream.nullOutputStream());
             }
             byte[] digest = md.digest();
             StringBuilder sb = new StringBuilder(digest.length * 2);
