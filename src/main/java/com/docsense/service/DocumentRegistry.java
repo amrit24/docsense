@@ -39,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DocumentRegistry {
 
     private final Map<String, DocumentRecord> store = new ConcurrentHashMap<>();
+    /** Maps file SHA-256 (hex) → documentId for quick duplicate lookup */
+    private final Map<String, String> hashIndex = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
     private final Path registryPath;
 
@@ -68,6 +70,10 @@ public class DocumentRegistry {
                     new TypeReference<List<DocumentRecord>>() {}
             );
             records.forEach(r -> store.put(r.getDocumentId(), r));
+            // populate hash index for fast lookup (records may not have sha256 if older)
+            records.stream()
+                    .filter(r -> r.getSha256() != null && !r.getSha256().isBlank())
+                    .forEach(r -> hashIndex.put(r.getSha256(), r.getDocumentId()));
             log.info("Loaded {} document record(s) from registry file: {}", store.size(), registryPath);
         } catch (IOException e) {
             log.warn("Failed to read registry file {} — starting with empty registry. Cause: {}",
@@ -81,8 +87,23 @@ public class DocumentRegistry {
      */
     public void register(DocumentRecord record) {
         store.put(record.getDocumentId(), record);
+        if (record.getSha256() != null && !record.getSha256().isBlank()) {
+            hashIndex.put(record.getSha256(), record.getDocumentId());
+        }
         log.debug("Registered document: id={} file={}", record.getDocumentId(), record.getFileName());
         saveToDisk();
+    }
+
+    /**
+     * Looks up a document by the SHA-256 hex of its file contents.
+     *
+     * @param sha256 hex-encoded sha256 string
+     * @return the record, or empty if not found
+     */
+    public Optional<DocumentRecord> findByHash(String sha256) {
+        String id = hashIndex.get(sha256);
+        if (id == null) return Optional.empty();
+        return Optional.ofNullable(store.get(id));
     }
 
     /**

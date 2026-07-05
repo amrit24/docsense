@@ -17,6 +17,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.io.InputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -68,7 +73,26 @@ public class DocumentIngestionService {
         Path savedPath = storageService.save(file);
         log.info("[1/5] Saved to disk: {}", savedPath);
 
-        // ── [2] Read PDF pages from saved file ─────────────────────────────────
+                // ── [1.5] Compute file hash and check for duplicates ───────────────────
+                String sha256 = computeSha256Hex(savedPath);
+                documentRegistry.findByHash(sha256).ifPresent(existing -> {
+                        log.info("Duplicate upload detected — existing documentId={} (file={})", existing.getDocumentId(), existing.getFileName());
+                });
+                // if found, return early to avoid re-ingestion
+                var existingOpt = documentRegistry.findByHash(sha256);
+                if (existingOpt.isPresent()) {
+                        DocumentRecord existing = existingOpt.get();
+                        return IngestionResponse.builder()
+                                        .message("Document already ingested. Returning existing documentId.")
+                                        .documentId(existing.getDocumentId())
+                                        .fileName(existing.getFileName())
+                                        .pageCount(existing.getPageCount())
+                                        .chunksStored(existing.getChunksStored())
+                                        .uploadedAt(existing.getUploadedAt())
+                                        .build();
+                }
+
+                // ── [2] Read PDF pages from saved file ─────────────────────────────────
         Resource pdfResource = storageService.load(fileName);
 
         PdfDocumentReaderConfig readerConfig = PdfDocumentReaderConfig.builder()
@@ -116,6 +140,7 @@ public class DocumentIngestionService {
                 .pageCount(pageCount)
                 .chunksStored(chunks.size())
                 .uploadedAt(uploadedAt)
+                .sha256(sha256)
                 .build();
         documentRegistry.register(record);
 
@@ -131,4 +156,25 @@ public class DocumentIngestionService {
                 .uploadedAt(uploadedAt)
                 .build();
     }
+
+        private String computeSha256Hex(Path path) throws IOException {
+                try (InputStream in = java.nio.file.Files.newInputStream(path)) {
+                        MessageDigest md = MessageDigest.getInstance("SHA-256");
+                        try (DigestInputStream dis = new DigestInputStream(in, md)) {
+                                byte[] buffer = new byte[8192];
+                                while (dis.read(buffer) != -1) {
+                                        // read stream to update digest
+                                }
+                        }
+                        byte[] digest = md.digest();
+                        // convert to hex
+                        StringBuilder sb = new StringBuilder(digest.length * 2);
+                        for (byte b : digest) {
+                                sb.append(String.format("%02x", b));
+                        }
+                        return sb.toString();
+                } catch (NoSuchAlgorithmException e) {
+                        throw new RuntimeException("SHA-256 algorithm not available", e);
+                }
+        }
 }

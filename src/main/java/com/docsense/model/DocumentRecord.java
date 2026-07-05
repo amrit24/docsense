@@ -32,4 +32,7 @@ public class DocumentRecord {
 
     @Schema(description = "UTC timestamp of when the document was ingested", example = "2026-07-05T10:30:00Z")
     private Instant uploadedAt;
+
+    @Schema(description = "SHA-256 hash of the file contents (hex)", example = "3a7bd3e2360a...f4b2")
+    private String sha256;
 }
