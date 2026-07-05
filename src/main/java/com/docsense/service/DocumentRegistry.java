@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Keyed by {@code documentId} (UUID). Because this is in-memory, the registry is
  * cleared on restart — the PDFs and their ChromaDB embeddings persist on disk, but
  * the registry metadata does not. For production use, replace with a database-backed store.
- * TODO : Call db from here to store document matadata
  */
 @Slf4j
 @Component
