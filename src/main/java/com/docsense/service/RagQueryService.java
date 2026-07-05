@@ -1,9 +1,9 @@
-package com.ai.learn.service;
+package com.docsense.service;
 
-import com.ai.learn.config.RagProperties;
-import com.ai.learn.model.ChatRequest;
-import com.ai.learn.model.ChatResponse;
-import com.ai.learn.model.Source;
+import com.docsense.config.RagProperties;
+import com.docsense.model.ChatRequest;
+import com.docsense.model.ChatResponse;
+import com.docsense.model.Source;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;

@@ -1,4 +1,4 @@
-package com.ai.learn.model;
+package com.docsense.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;

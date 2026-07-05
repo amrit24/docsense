@@ -1,10 +1,10 @@
-package com.ai.learn.controller;
+package com.docsense.controller;
 
-import com.ai.learn.model.DocumentRecord;
-import com.ai.learn.model.IngestionResponse;
-import com.ai.learn.service.DocumentIngestionService;
-import com.ai.learn.service.DocumentRegistry;
-import com.ai.learn.service.StorageService;
+import com.docsense.model.DocumentRecord;
+import com.docsense.model.IngestionResponse;
+import com.docsense.service.DocumentIngestionService;
+import com.docsense.service.DocumentRegistry;
+import com.docsense.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

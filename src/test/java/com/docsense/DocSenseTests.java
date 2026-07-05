@@ -1,6 +1,6 @@
-package com.ai.learn;
+package com.docsense;
 
-import com.ai.learn.model.ChatRequest;
+import com.docsense.model.ChatRequest;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;

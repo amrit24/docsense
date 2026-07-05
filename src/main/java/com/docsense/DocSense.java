@@ -1,4 +1,4 @@
-package com.ai.learn;
+package com.docsense;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

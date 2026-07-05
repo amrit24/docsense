@@ -1,8 +1,8 @@
-package com.ai.learn.controller;
+package com.docsense.controller;
 
-import com.ai.learn.model.ChatRequest;
-import com.ai.learn.model.ChatResponse;
-import com.ai.learn.service.RagQueryService;
+import com.docsense.model.ChatRequest;
+import com.docsense.model.ChatResponse;
+import com.docsense.service.RagQueryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;

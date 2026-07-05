@@ -1,8 +1,8 @@
-package com.ai.learn.service;
+package com.docsense.service;
 
-import com.ai.learn.config.RagProperties;
-import com.ai.learn.model.DocumentRecord;
-import com.ai.learn.model.IngestionResponse;
+import com.docsense.config.RagProperties;
+import com.docsense.model.DocumentRecord;
+import com.docsense.model.IngestionResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;

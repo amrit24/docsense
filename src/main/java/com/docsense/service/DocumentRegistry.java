@@ -1,6 +1,6 @@
-package com.ai.learn.service;
+package com.docsense.service;
 
-import com.ai.learn.model.DocumentRecord;
+import com.docsense.model.DocumentRecord;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

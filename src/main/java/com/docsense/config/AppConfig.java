@@ -1,4 +1,4 @@
-package com.ai.learn.config;
+package com.docsense.config;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

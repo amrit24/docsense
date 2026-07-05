@@ -1,6 +1,6 @@
-package com.ai.learn.service;
+package com.docsense.service;
 
-import com.ai.learn.config.StorageProperties;
+import com.docsense.config.StorageProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

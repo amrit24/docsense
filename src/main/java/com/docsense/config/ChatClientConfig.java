@@ -1,4 +1,4 @@
-package com.ai.learn.config;
+package com.docsense.config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.ollama.OllamaChatModel;
