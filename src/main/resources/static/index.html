@@ -120,7 +120,10 @@
       </div>
       <!-- Upload error -->
       <p x-show="uploadError" x-cloak x-text="uploadError"
-         class="text-xs text-red-500 mt-2 text-center"></p>
+        class="text-xs text-red-500 mt-2 text-center"></p>
+      <!-- Upload info (e.g. duplicate detected) -->
+      <p x-show="uploadInfo" x-cloak x-text="uploadInfo"
+        class="text-xs text-green-700 bg-green-50 px-2 py-1 rounded mt-2 text-center"></p>
     </div>
 
     <!-- Document list -->
@@ -348,7 +351,9 @@ function app() {
     asking:      false,
     uploading:   false,
     uploadStatus:'Uploading…',
-    uploadError: '',
+      uploadError: '',
+      uploadInfo:  '',
+      uploadInfoTimer: null,
     hints: [
       'Explain the Singleton design pattern.',
       'What are the key topics covered in this document?',
@@ -397,6 +402,8 @@ function app() {
         return;
       }
       this.uploadError  = '';
+      this.uploadInfo   = '';
+      if (this.uploadInfoTimer) { clearTimeout(this.uploadInfoTimer); this.uploadInfoTimer = null; }
       this.uploading    = true;
       this.uploadStatus = 'Uploading…';
 
@@ -409,6 +416,12 @@ function app() {
         if (!res.ok) {
           this.uploadError = data.detail || data.message || 'Upload failed.';
           return;
+        }
+        // If the backend reports the document was already ingested, show a friendly info message
+        if (data.message && String(data.message).toLowerCase().includes('already ingested')) {
+          this.uploadInfo = 'This PDF has already been uploaded — using the existing index.';
+          // auto-hide after 6 seconds
+          this.uploadInfoTimer = setTimeout(() => { this.uploadInfo = ''; this.uploadInfoTimer = null; }, 6000);
         }
         this.uploadStatus = 'Processing…';
         await this.loadDocs();
