@@ -1,0 +1,8 @@
+target
+.git
+.gitignore
+README.md
+.DS_Store
+.vscode
+*.md
+node_modules

@@ -10,7 +10,7 @@ spring:
 
   ai:
     ollama:
-      base-url: http://localhost:11434
+      base-url: ${SPRING_AI_OLLAMA_BASE_URL:http://localhost:11434}
       chat:
         options:
           model: llama3.2        # Chat model – change to any model you have pulled
@@ -23,8 +23,8 @@ spring:
     vectorstore:
       chroma:
         client:
-          host: http://localhost
-          port: 8000
+          host: ${SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST:localhost}
+          port: ${SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT:8000}
         initialize-schema: true
         collection-name: docsense-documents
         tenant-name: default_tenant

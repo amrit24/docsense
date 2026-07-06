@@ -134,92 +134,82 @@ storage/                              # runtime — gitignored
 
 ---
 
-## How to Run
+## Quick Start — Docker
+
+The fastest way to run everything — all services in one command.
+
+### Prerequisites
+
+- **Docker** and **Docker Compose** (installed and running)
+- 15-20 GB free disk space (for Ollama models on first run)
+
+### Step 1 — Start everything
+
+Run from the project directory:
+
+```bash
+./docker-start.sh
+```
+
+This will:
+1. Build the Spring Boot Docker image
+2. Start Ollama, ChromaDB, and DocSense containers
+3. Auto-pull required models (`llama3.2`, `nomic-embed-text`)
+4. Display access URLs when ready
+
+**First startup takes 5-15 minutes** (pulling Ollama models). Subsequent starts are instant.
+
+### Step 2 — Access the app
+
+Once startup completes:
+
+- **Web UI:** http://localhost:8085
+- **Swagger API Docs:** http://localhost:8085/swagger-ui.html
+
+### Step 3 — Stop everything
+
+```bash
+./docker-stop.sh
+```
+
+This gracefully stops all containers while preserving data (Ollama models, ChromaDB vectors, documents).
+
+---
+
+## Local Development Setup
+
+If you prefer running services locally instead of Docker:
 
 ### Prerequisites
 
 | Tool | Version | Notes |
 |---|---|---|
-| Java | 21 | Use IntelliJ's bundled JDK — not the system JDK |
-| Docker | any | For ChromaDB |
-| Ollama | latest | Install natively on macOS — **not** in Docker |
+| Java | 21 | Use IntelliJ's bundled JDK |
+| Ollama | latest | Install from [ollama.com/download](https://ollama.com/download) |
+| Docker | any | For ChromaDB only |
 
----
+### Steps
 
-### Step 1 — Install Ollama
-
-Download from [ollama.com/download](https://ollama.com/download) or:
-
+1. **Install Ollama** and pull models:
 ```bash
 brew install ollama
-```
-
-Start the server (skip if you installed the macOS app — it auto-starts in the menu bar):
-
-```bash
-ollama serve
-```
-
-Verify:
-
-```bash
-curl http://localhost:11434
-```
-Expected: `Ollama is running`
-
----
-
-### Step 2 — Pull the required models
-
-```bash
 ollama pull llama3.2
 ollama pull nomic-embed-text
 ```
 
-Verify both are downloaded:
-
+2. **Start ChromaDB** in Docker:
 ```bash
-ollama list
+docker-compose up chromadb -d
 ```
 
----
+3. **Run Spring Boot**:
+Open project in IntelliJ, confirm JDK 21 is selected, run `DocSense.java`.
 
-### Step 3 — Start ChromaDB
-
-Run this from the **project directory**:
-
-```bash
-cd /path/to/docsense
-docker compose up -d
-```
-
-Verify:
-
-```bash
-curl http://localhost:8000/api/v2/heartbeat
-```
-Expected: `{"nanosecond heartbeat": ...}`
-
-> ChromaDB is pinned to `1.5.3` in `docker-compose.yml`. This is required — Spring AI 1.0.1's ChromaApi uses the v2 API, and 1.5.3 is the compatible version.
-
----
-
-### Step 4 — Run the app
-
-Open the project in **IntelliJ**, confirm JDK 21 is set under `File → Project Structure → Project`, then run `DocSense.java`.
-
-The app starts on `http://localhost:8085`. On first startup it auto-creates the `docsense-documents` collection in ChromaDB.
-
----
-
-### Step 5 — Verify everything is connected
-
+4. **Verify health:**
 ```bash
 curl http://localhost:8085/api/v1/health
 ```
-
 Expected:
-
 ```json
 {
   "overall": "UP",
@@ -229,6 +219,25 @@ Expected:
   "timestamp": "..."
 }
 ```
+
+---
+
+## Docker Files Reference
+
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Multi-stage build: compiles Spring Boot app, creates lightweight JRE image |
+| `docker-compose.yml` | Defines three services: Ollama, ChromaDB, DocSense |
+| `docker-start.sh` | Startup script: builds, starts all services, pulls Ollama models |
+| `docker-stop.sh` | Shutdown script: stops and removes containers (preserves data) |
+| `.dockerignore` | Optimizes build context |
+
+**Volumes (persistent data):**
+- `ollama_data` — Cached models (survives container restarts)
+- `chroma_data` — Vector embeddings and ChromaDB state
+- `./storage` — Uploaded PDFs and document registry (host-mounted)
+
+**Network:** All containers communicate via Docker's internal network (`docsense_default`). No port forwarding needed between services.
 
 ---
 
