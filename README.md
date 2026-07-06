@@ -140,7 +140,7 @@ storage/                              # runtime — gitignored
 
 | Tool | Version | Notes |
 |---|---|---|
-| Java | 21 | Use IntelliJ's bundled JDK — not the system JDK |
+| Java | 21 | Java 21|
 | Docker | any | For ChromaDB |
 | Ollama | latest | Install natively on macOS — **not** in Docker |
 
