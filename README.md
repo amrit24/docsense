@@ -184,7 +184,7 @@ If you prefer running services locally instead of Docker:
 
 | Tool | Version | Notes |
 |---|---|---|
-| Java | 21 | Use IntelliJ's bundled JDK |
+| Java | 21 | openjdk 21 |
 | Ollama | latest | Install from [ollama.com/download](https://ollama.com/download) |
 | Docker | any | For ChromaDB only |
 
