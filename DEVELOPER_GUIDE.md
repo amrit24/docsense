@@ -128,31 +128,31 @@ The AI is essentially open-book — it has the relevant pages in front of it whe
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                  Your Machine                        │
-│                                                      │
+│                  Your Machine                       │
+│                                                     │
 │  ┌─────────────────────────────────────────────┐    │
-│  │         Spring Boot Application              │    │
-│  │         (this project, port 8085)            │    │
-│  │                                              │    │
-│  │  Receives HTTP requests                      │    │
-│  │  Orchestrates the RAG pipeline               │    │
-│  │  Returns JSON responses                      │    │
+│  │         Spring Boot Application             │    │
+│  │         (this project, port 8085)           │    │
+│  │                                             │    │
+│  │  Receives HTTP requests                     │    │
+│  │  Orchestrates the RAG pipeline              │    │
+│  │  Returns JSON responses                     │    │
 │  └──────────────┬──────────────────────────────┘    │
-│                 │                                     │
-│        ┌────────┴──────────┐                         │
-│        ▼                   ▼                         │
-│  ┌──────────────┐   ┌──────────────────┐             │
-│  │    Ollama    │   │    ChromaDB      │             │
-│  │  port 11434  │   │   port 8000      │             │
-│  │              │   │   (Docker)       │             │
-│  │  Two models: │   │                  │             │
-│  │  - llama3.2  │   │  Stores vectors  │             │
-│  │    (chat)    │   │  + text chunks   │             │
-│  │  - nomic-    │   │  + metadata      │             │
-│  │    embed-    │   │                  │             │
-│  │    text      │   │                  │             │
-│  │  (embedding) │   │                  │             │
-│  └──────────────┘   └──────────────────┘             │
+│                 │                                   │
+│        ┌────────┴──────────┐                        │
+│        ▼                   ▼                        │
+│  ┌──────────────┐   ┌──────────────────┐            │
+│  │    Ollama    │   │    ChromaDB      │            │
+│  │  port 11434  │   │   port 8000      │            │
+│  │              │   │   (Docker)       │            │
+│  │  Two models: │   │                  │            │
+│  │  - llama3.2  │   │  Stores vectors  │            │
+│  │    (chat)    │   │  + text chunks   │            │
+│  │  - nomic-    │   │  + metadata      │            │
+│  │    embed-    │   │                  │            │
+│  │    text      │   │                  │            │
+│  │  (embedding) │   │                  │            │
+│  └──────────────┘   └──────────────────┘            │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -887,9 +887,9 @@ As of version 0.1.0, DocSense is fully containerized. All three components (Olla
 ### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│              Docker Network (docsense_default)          │
-│                                                          │
+┌────────────────────────────────────────────────────────┐
+│              Docker Network (docsense_default)         │
+│                                                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
 │  │    Ollama    │  │   ChromaDB   │  │  DocSense    │  │
 │  │  port 11434  │  │  port 8000   │  │  port 8085   │  │
@@ -900,13 +900,13 @@ As of version 0.1.0, DocSense is fully containerized. All three components (Olla
 │  │              │  │              │  │ static/      │  │
 │  │              │  │              │  │ index.html   │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
-│       ▲                   ▲                    ▲         │
-│       │ (internal)        │ (internal)        │ (host)  │
-│       │                   │                   │         │
-│  ollama_data          chroma_data        :8085 exposed  │
-│   volume               volume                           │
-│                                                          │
-└─────────────────────────────────────────────────────────┘
+│       ▲                   ▲                    ▲       │
+│       │ (internal)        │ (internal)        │ (host) │
+│       │                   │                   │        │
+│  ollama_data          chroma_data        :8085 exposed │
+│   volume               volume                          │
+│                                                        │
+└────────────────────────────────────────────────────────┘
           ▲                              ▲
           │ Host machine                 │
           │                              │
@@ -1078,4 +1078,3 @@ docker-compose build --no-cache docsense # Force rebuild
 
 ---
 
-## 12. Known limitations and future improvements
