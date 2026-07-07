@@ -55,12 +55,11 @@ public class DocumentService {
 
         // ── [1.5] Compute file hash and check for duplicates ───────────────────
         String sha256 = computeSha256Hex(savedPath);
-        documentRegistry.findByHash(sha256).ifPresent(existing -> {
-            log.info("Duplicate upload detected — existing documentId={} (file={})", existing.getDocumentId(), existing.getFileName());
-        });
         var existingOpt = documentRegistry.findByHash(sha256);
+
         if (existingOpt.isPresent()) {
             DocumentRecord existing = existingOpt.get();
+            log.info("Duplicate upload detected — existing documentId={} (file={})", existing.getDocumentId(), existing.getFileName());
             return IngestionResponse.builder()
                     .message("Document already ingested. Returning existing documentId.")
                     .documentId(existing.getDocumentId())
