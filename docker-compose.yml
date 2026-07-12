@@ -1,4 +1,15 @@
 services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    restart: unless-stopped
+
   chromadb:
     image: chromadb/chroma:1.5.3   # v2 API — required by Spring AI 1.0.1 ChromaApi
     container_name: chromadb
@@ -10,7 +21,26 @@ services:
       - ANONYMIZED_TELEMETRY=false
       - ALLOW_RESET=true
     restart: unless-stopped
+    depends_on:
+      - ollama
+
+  docsense:
+    build: .
+    container_name: docsense
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
+      - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST=http://chromadb
+      - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT=8000
+    depends_on:
+      - chromadb
+    volumes:
+      - ./storage:/app/storage
+    restart: unless-stopped
 
 volumes:
+  ollama_data:
+    driver: local
   chroma_data:
     driver: local
