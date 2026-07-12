@@ -20,7 +20,7 @@
       theme: {
         extend: {
           colors: {
-            brand: { 50:'#f0f9ff', 100:'#e0f2fe', 500:'#0ea5e9', 600:'#0284c7', 700:'#0369a1' }
+            brand: { 50:'#F6F8FA', 100:'#EAEEF2', 300:'#D0D7DE', 400:'#8C959F', 500:'#59636E', 600:'#24292F', 700:'#1F2328' }
           }
         }
       }
@@ -28,12 +28,12 @@
   </script>
   <style>
     [x-cloak] { display: none !important; }
-    .chat-bubble-user  { background: #0ea5e9; color: #fff; border-radius: 1rem 1rem 0.25rem 1rem; }
-    .chat-bubble-ai    { background: #f1f5f9; color: #1e293b; border-radius: 1rem 1rem 1rem 0.25rem; }
-    .drop-active       { border-color: #0ea5e9 !important; background: #f0f9ff !important; }
+    .chat-bubble-user  { background: #24292F; color: #fff; border-radius: 0.5rem 0.5rem 0.125rem 0.5rem; }
+    .chat-bubble-ai    { background: #F6F8FA; color: #1F2328; border-radius: 0.5rem 0.5rem 0.5rem 0.125rem; border: 1px solid #D0D7DE; }
+    .drop-active       { border-color: #24292F !important; background: #F6F8FA !important; }
     .scrollbar-thin::-webkit-scrollbar { width: 4px; }
     .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #D0D7DE; border-radius: 2px; }
     /* Markdown prose styles inside AI bubbles */
     .prose-ai p              { margin: 0 0 0.6em; line-height: 1.65; }
     .prose-ai p:last-child   { margin-bottom: 0; }
@@ -44,40 +44,40 @@
     .prose-ai ul,.prose-ai ol{ margin: 0.4em 0 0.6em 1.2em; }
     .prose-ai li             { margin-bottom: 0.2em; }
     .prose-ai code           { font-family: ui-monospace,monospace; font-size: 0.85em;
-                               background: #e2e8f0; padding: 0.15em 0.4em; border-radius: 4px; }
-    .prose-ai pre            { margin: 0.6em 0; border-radius: 8px; overflow: hidden; }
+                               background: #EAEEF2; padding: 0.15em 0.4em; border-radius: 4px; }
+    .prose-ai pre            { margin: 0.6em 0; border-radius: 6px; overflow: hidden; border: 1px solid #D0D7DE; }
     .prose-ai pre code       { background: transparent; padding: 0; font-size: 0.82em;
                                display: block; padding: 1em; overflow-x: auto; }
     .prose-ai strong         { font-weight: 600; }
-    .prose-ai blockquote     { border-left: 3px solid #cbd5e1; padding-left: 0.75em;
-                               color: #64748b; margin: 0.5em 0; }
-    .prose-ai a              { color: #0284c7; text-decoration: underline; }
+    .prose-ai blockquote     { border-left: 3px solid #D0D7DE; padding-left: 0.75em;
+                               color: #59636E; margin: 0.5em 0; }
+    .prose-ai a              { color: #1F2328; text-decoration: underline; }
     @keyframes pulse-dot { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
-    .typing-dot { display:inline-block; width:6px; height:6px; margin:0 2px; background:#64748b;
+    .typing-dot { display:inline-block; width:6px; height:6px; margin:0 2px; background:#59636E;
                   border-radius:50%; animation: pulse-dot 1.2s infinite ease-in-out; }
     .typing-dot:nth-child(2) { animation-delay: 0.2s; }
     .typing-dot:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans antialiased" x-data="app()" x-init="init()">
+<body class="bg-[#F6F8FA] min-h-screen antialiased" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;" x-data="app()" x-init="init()">
 
 <!-- ── Header ── -->
-<header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+<header class="bg-[#24292F] border-b border-black/40 px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
   <div class="flex items-center gap-2">
-    <svg class="w-7 h-7 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0121 9.414V19a2 2 0 01-2 2z"/>
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0121 9.414V19a2 2 0 01-2 2z"/>
     </svg>
-    <span class="text-xl font-semibold text-slate-800 tracking-tight">DocSense</span>
-    <span class="text-xs text-slate-400 ml-1 hidden sm:inline">Local PDF Q&amp;A</span>
+    <span class="text-xl font-semibold text-white tracking-tight">DocSense</span>
+    <span class="text-xs text-[#8C959F] ml-1 hidden sm:inline">Local PDF Q&amp;A</span>
   </div>
   <div class="flex items-center gap-3">
     <span x-show="docs.length > 0" x-cloak
-          class="text-xs bg-brand-100 text-brand-700 px-2.5 py-1 rounded-full font-medium"
+          class="text-xs bg-white/10 text-white px-2.5 py-1 rounded-full font-medium"
           x-text="docs.length + ' doc' + (docs.length !== 1 ? 's' : '') + ' indexed'">
     </span>
     <a href="/swagger-ui.html" target="_blank"
-       class="text-xs text-slate-400 hover:text-brand-600 transition-colors">API docs</a>
+       class="text-xs text-[#8C959F] hover:text-white transition-colors">API docs</a>
   </div>
 </header>
 
@@ -91,7 +91,7 @@
     <div class="p-4 border-b border-slate-100">
       <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Upload PDF</p>
       <div id="dropzone"
-           class="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center cursor-pointer
+           class="border-2 border-dashed border-slate-200 rounded-md p-5 text-center cursor-pointer
                   hover:border-brand-400 hover:bg-brand-50 transition-all duration-200 relative"
            @click="$refs.fileInput.click()"
            @dragover.prevent="$event.currentTarget.classList.add('drop-active')"
@@ -102,7 +102,7 @@
           <div>
             <svg class="w-8 h-8 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
             </svg>
             <p class="text-sm text-slate-500">Drop PDF here</p>
             <p class="text-xs text-slate-400 mt-0.5">or click to browse</p>
@@ -120,18 +120,18 @@
       </div>
       <!-- Upload error -->
       <p x-show="uploadError" x-cloak x-text="uploadError"
-        class="text-xs text-red-500 mt-2 text-center"></p>
+         class="text-xs text-red-500 mt-2 text-center"></p>
       <!-- Upload info (e.g. duplicate detected) -->
       <p x-show="uploadInfo" x-cloak x-text="uploadInfo"
-        class="text-xs text-green-700 bg-green-50 px-2 py-1 rounded mt-2 text-center"></p>
+         class="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded mt-2 text-center"></p>
       <p x-show="deleteInfo" x-cloak x-text="deleteInfo"
-        class="text-xs text-green-700 bg-green-50 px-2 py-1 rounded mt-2 text-center"></p>
+         class="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded mt-2 text-center"></p>
       <p x-show="deleteError" x-cloak x-text="deleteError"
-        class="text-xs text-red-500 bg-red-50 px-2 py-1 rounded mt-2 text-center"></p>
+         class="text-xs text-red-500 bg-red-50 px-2 py-1 rounded mt-2 text-center"></p>
     </div>
 
     <div x-show="deleteDialog" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-      <div @click.stop class="w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
+      <div @click.stop class="w-full max-w-md rounded-lg bg-white border border-slate-200 shadow-2xl overflow-hidden">
         <div class="px-6 py-5 border-b border-slate-200">
           <p class="text-sm font-semibold text-slate-900">Confirm delete</p>
           <p class="text-sm text-slate-500 mt-1" x-text="deleteTarget ? 'Remove ' + deleteTarget.fileName + ' from the index?' : ''"></p>
@@ -141,11 +141,11 @@
           <p x-show="deleteError" x-cloak class="text-sm text-red-600 mt-3" x-text="deleteError"></p>
           <div class="mt-5 flex flex-wrap gap-3 justify-end">
             <button @click="cancelDelete()" type="button"
-                    class="rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50">
+                    class="rounded-md px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50">
               Cancel
             </button>
             <button @click="deleteDocument(deleteTarget)" type="button"
-                    class="rounded-xl px-4 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700">
+                    class="rounded-md px-4 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700">
               Delete document
             </button>
           </div>
@@ -161,7 +161,7 @@
                 class="text-slate-400 hover:text-brand-600 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
           </svg>
         </button>
       </div>
@@ -170,7 +170,7 @@
       <div x-show="docs.length === 0 && !docsLoading" x-cloak class="text-center py-8">
         <svg class="w-10 h-10 text-slate-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
         </svg>
         <p class="text-xs text-slate-400">No documents yet</p>
         <p class="text-xs text-slate-300 mt-0.5">Upload a PDF to get started</p>
@@ -199,7 +199,7 @@
               </svg>
             </button>
             <div @click="toggleScope(doc)" class="flex items-start gap-2 cursor-pointer pr-10">
-              <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-slate-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
               </svg>
               <span x-show="scopedDoc && scopedDoc.documentId === doc.documentId"
@@ -240,10 +240,10 @@
 
       <!-- Welcome state -->
       <div x-show="messages.length === 0" x-cloak class="flex flex-col items-center justify-center h-full text-center pb-12">
-        <div class="w-16 h-16 bg-brand-100 rounded-2xl flex items-center justify-center mb-4">
+        <div class="w-16 h-16 bg-brand-100 rounded-lg flex items-center justify-center mb-4">
           <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
         </div>
         <h2 class="text-lg font-semibold text-slate-700 mb-1">Ask your documents anything</h2>
@@ -251,7 +251,7 @@
         <div class="mt-6 grid grid-cols-1 gap-2 w-full max-w-sm">
           <template x-for="hint in hints">
             <button @click="question = hint; $refs.input.focus()"
-                    class="text-left text-sm bg-white border border-slate-200 text-slate-500 px-4 py-2.5 rounded-xl
+                    class="text-left text-sm bg-white border border-slate-200 text-slate-500 px-4 py-2.5 rounded-md
                            hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50 transition-all duration-150"
                     x-text="hint">
             </button>
@@ -291,7 +291,7 @@
                         <template x-for="src in msg.sources" :key="src.file + src.page">
                           <span class="inline-flex items-center gap-1 text-xs bg-white border border-slate-200
                                        text-slate-500 px-2.5 py-1 rounded-full shadow-sm">
-                            <svg class="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-3 h-3 text-slate-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/>
                             </svg>
                             <span x-text="src.file"></span>
@@ -328,21 +328,21 @@
 
       <form @submit.prevent="sendMessage()" class="flex items-end gap-2">
         <textarea
-          x-ref="input"
-          x-model="question"
-          @keydown.enter.exact.prevent="sendMessage()"
-          @keydown.enter.shift.exact="/* allow newline */"
-          :disabled="asking"
-          rows="1"
-          placeholder="Ask a question about your documents…"
-          class="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800
+                x-ref="input"
+                x-model="question"
+                @keydown.enter.exact.prevent="sendMessage()"
+                @keydown.enter.shift.exact="/* allow newline */"
+                :disabled="asking"
+                rows="1"
+                placeholder="Ask a question about your documents…"
+                class="flex-1 resize-none rounded-md border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800
                  placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent
                  disabled:opacity-50 transition-all duration-150 max-h-32 overflow-y-auto scrollbar-thin"
-          @input="autoResize($refs.input)"
+                @input="autoResize($refs.input)"
         ></textarea>
         <button type="submit"
                 :disabled="!question.trim() || asking"
-                class="shrink-0 w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center
+                class="shrink-0 w-10 h-10 rounded-md bg-brand-600 text-white flex items-center justify-center
                        hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed
                        transition-all duration-150 shadow-sm hover:shadow-md">
           <template x-if="!asking">
@@ -364,220 +364,220 @@
 </div>
 
 <script>
-function app() {
-  // Configure marked with highlight.js once
-  marked.setOptions({
-    highlight: (code, lang) => {
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
-      }
-      return hljs.highlightAuto(code).value;
-    },
-    breaks: true,
-    gfm: true,
-  });
-
-  return {    // — state —
-    docs:        [],
-    docsLoading: false,
-    scopedDoc:   null,
-    messages:    [],
-    question:    '',
-    asking:      false,
-    uploading:   false,
-    uploadStatus:'Uploading…',
-    uploadError: '',
-    uploadInfo:  '',
-    uploadInfoTimer: null,
-    deleteInfo:  '',
-    deleteError: '',
-    deleteInfoTimer: null,
-    deleteDialog: false,
-    deleteTarget: null,
-    hints: [
-      'Explain the Singleton design pattern.',
-      'What are the key topics covered in this document?',
-      'Summarise chapter 1.',
-    ],
-
-    // — lifecycle —
-    init() {
-      this.loadDocs();
-    },
-
-    // — documents —
-    async loadDocs() {
-      this.docsLoading = true;
-      try {
-        const res  = await fetch('/api/v1/documents');
-        const data = await res.json();
-        this.docs  = (data.documents || []).slice().reverse();
-      } catch (e) {
-        console.error('Failed to load documents', e);
-      } finally {
-        this.docsLoading = false;
-      }
-    },
-
-    toggleScope(doc) {
-      this.scopedDoc = this.scopedDoc && this.scopedDoc.documentId === doc.documentId ? null : doc;
-    },
-
-    promptDelete(doc) {
-      this.deleteError = '';
-      this.deleteInfo = '';
-      this.deleteTarget = doc;
-      this.deleteDialog = true;
-    },
-
-    cancelDelete() {
-      this.deleteDialog = false;
-      this.deleteTarget = null;
-    },
-
-    // — upload —
-    onDrop(event) {
-      event.currentTarget.classList.remove('drop-active');
-      const file = event.dataTransfer.files[0];
-      if (file) this.uploadFile(file);
-    },
-
-    onFileSelect(event) {
-      const file = event.target.files[0];
-      if (file) this.uploadFile(file);
-      event.target.value = '';
-    },
-
-    async uploadFile(file) {
-      if (!file.name.toLowerCase().endsWith('.pdf')) {
-        this.uploadError = 'Only PDF files are supported.';
-        return;
-      }
-      this.uploadError  = '';
-      this.uploadInfo   = '';
-      this.deleteInfo   = '';
-      this.deleteError  = '';
-      if (this.uploadInfoTimer) { clearTimeout(this.uploadInfoTimer); this.uploadInfoTimer = null; }
-      if (this.deleteInfoTimer) { clearTimeout(this.deleteInfoTimer); this.deleteInfoTimer = null; }
-      this.uploading    = true;
-      this.uploadStatus = 'Uploading…';
-
-      const form = new FormData();
-      form.append('file', file);
-
-      try {
-        const res  = await fetch('/api/v1/documents/upload', { method: 'POST', body: form });
-        const data = await res.json();
-        if (!res.ok) {
-          this.uploadError = data.detail || data.message || 'Upload failed.';
-          return;
+  function app() {
+    // Configure marked with highlight.js once
+    marked.setOptions({
+      highlight: (code, lang) => {
+        if (lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
         }
-        // If the backend reports the document was already ingested, show a friendly info message
-        if (data.message && String(data.message).toLowerCase().includes('already ingested')) {
-          this.uploadInfo = 'This PDF has already been uploaded — using the existing index.';
-          // auto-hide after 6 seconds
-          this.uploadInfoTimer = setTimeout(() => { this.uploadInfo = ''; this.uploadInfoTimer = null; }, 6000);
+        return hljs.highlightAuto(code).value;
+      },
+      breaks: true,
+      gfm: true,
+    });
+
+    return {    // — state —
+      docs:        [],
+      docsLoading: false,
+      scopedDoc:   null,
+      messages:    [],
+      question:    '',
+      asking:      false,
+      uploading:   false,
+      uploadStatus:'Uploading…',
+      uploadError: '',
+      uploadInfo:  '',
+      uploadInfoTimer: null,
+      deleteInfo:  '',
+      deleteError: '',
+      deleteInfoTimer: null,
+      deleteDialog: false,
+      deleteTarget: null,
+      hints: [
+        'Explain the Singleton design pattern.',
+        'What are the key topics covered in this document?',
+        'Summarise chapter 1.',
+      ],
+
+      // — lifecycle —
+      init() {
+        this.loadDocs();
+      },
+
+      // — documents —
+      async loadDocs() {
+        this.docsLoading = true;
+        try {
+          const res  = await fetch('/api/v1/documents');
+          const data = await res.json();
+          this.docs  = (data.documents || []).slice().reverse();
+        } catch (e) {
+          console.error('Failed to load documents', e);
+        } finally {
+          this.docsLoading = false;
         }
-        this.uploadStatus = 'Processing…';
-        await this.loadDocs();
-        // Auto-scope to the freshly uploaded doc
-        const fresh = this.docs.find(d => d.documentId === data.documentId);
-        if (fresh) this.scopedDoc = fresh;
-      } catch (e) {
-        this.uploadError = 'Network error — is the server running?';
-      } finally {
-        this.uploading = false;
-        this.uploadStatus = 'Uploading…';
-      }
-    },
+      },
 
-    async deleteDocument(doc) {
-      this.deleteInfo  = '';
-      this.deleteError = '';
-      if (this.deleteInfoTimer) { clearTimeout(this.deleteInfoTimer); this.deleteInfoTimer = null; }
+      toggleScope(doc) {
+        this.scopedDoc = this.scopedDoc && this.scopedDoc.documentId === doc.documentId ? null : doc;
+      },
 
-      try {
-        const res = await fetch(`/api/v1/documents/${doc.documentId}`, { method: 'DELETE' });
-        const text = await res.text();
-        let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
+      promptDelete(doc) {
+        this.deleteError = '';
+        this.deleteInfo = '';
+        this.deleteTarget = doc;
+        this.deleteDialog = true;
+      },
 
-        if (!res.ok) {
-          this.deleteError = data.message || data.error || 'Failed to delete document.';
-          return;
-        }
-
+      cancelDelete() {
         this.deleteDialog = false;
         this.deleteTarget = null;
-        this.deleteInfo = data.message || 'Document deleted successfully.';
-        this.deleteInfoTimer = setTimeout(() => { this.deleteInfo = ''; this.deleteInfoTimer = null; }, 6000);
+      },
 
-        this.docs = this.docs.filter(d => d.documentId !== doc.documentId);
-        if (this.scopedDoc && this.scopedDoc.documentId === doc.documentId) {
-          this.scopedDoc = null;
+      // — upload —
+      onDrop(event) {
+        event.currentTarget.classList.remove('drop-active');
+        const file = event.dataTransfer.files[0];
+        if (file) this.uploadFile(file);
+      },
+
+      onFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) this.uploadFile(file);
+        event.target.value = '';
+      },
+
+      async uploadFile(file) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+          this.uploadError = 'Only PDF files are supported.';
+          return;
         }
-      } catch (e) {
-        this.deleteError = 'Network error — is the server running?';
-      }
-    },
+        this.uploadError  = '';
+        this.uploadInfo   = '';
+        this.deleteInfo   = '';
+        this.deleteError  = '';
+        if (this.uploadInfoTimer) { clearTimeout(this.uploadInfoTimer); this.uploadInfoTimer = null; }
+        if (this.deleteInfoTimer) { clearTimeout(this.deleteInfoTimer); this.deleteInfoTimer = null; }
+        this.uploading    = true;
+        this.uploadStatus = 'Uploading…';
 
-    // — chat —
-    async sendMessage() {
-      const q = this.question.trim();
-      if (!q || this.asking) return;
+        const form = new FormData();
+        form.append('file', file);
 
-      this.question = '';
-      this.$nextTick(() => this.autoResize(this.$refs.input));
+        try {
+          const res  = await fetch('/api/v1/documents/upload', { method: 'POST', body: form });
+          const data = await res.json();
+          if (!res.ok) {
+            this.uploadError = data.detail || data.message || 'Upload failed.';
+            return;
+          }
+          // If the backend reports the document was already ingested, show a friendly info message
+          if (data.message && String(data.message).toLowerCase().includes('already ingested')) {
+            this.uploadInfo = 'This PDF has already been uploaded — using the existing index.';
+            // auto-hide after 6 seconds
+            this.uploadInfoTimer = setTimeout(() => { this.uploadInfo = ''; this.uploadInfoTimer = null; }, 6000);
+          }
+          this.uploadStatus = 'Processing…';
+          await this.loadDocs();
+          // Auto-scope to the freshly uploaded doc
+          const fresh = this.docs.find(d => d.documentId === data.documentId);
+          if (fresh) this.scopedDoc = fresh;
+        } catch (e) {
+          this.uploadError = 'Network error — is the server running?';
+        } finally {
+          this.uploading = false;
+          this.uploadStatus = 'Uploading…';
+        }
+      },
 
-      // Push user bubble
-      this.messages.push({ role: 'user', content: q });
-      // Push loading AI bubble and track its index
-      const aiIdx = this.messages.length;
-      this.messages.push({ role: 'ai', content: '', sources: [], loading: true, error: false });
-      this.asking = true;
-      this.scrollToBottom();
+      async deleteDocument(doc) {
+        this.deleteInfo  = '';
+        this.deleteError = '';
+        if (this.deleteInfoTimer) { clearTimeout(this.deleteInfoTimer); this.deleteInfoTimer = null; }
 
-      try {
-        const body = { question: q };
-        if (this.scopedDoc) body.documentId = this.scopedDoc.documentId;
+        try {
+          const res = await fetch(`/api/v1/documents/${doc.documentId}`, { method: 'DELETE' });
+          const text = await res.text();
+          let data = {};
+          try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
 
-        const res  = await fetch('/api/v1/chat', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(body)
+          if (!res.ok) {
+            this.deleteError = data.message || data.error || 'Failed to delete document.';
+            return;
+          }
+
+          this.deleteDialog = false;
+          this.deleteTarget = null;
+          this.deleteInfo = data.message || 'Document deleted successfully.';
+          this.deleteInfoTimer = setTimeout(() => { this.deleteInfo = ''; this.deleteInfoTimer = null; }, 6000);
+
+          this.docs = this.docs.filter(d => d.documentId !== doc.documentId);
+          if (this.scopedDoc && this.scopedDoc.documentId === doc.documentId) {
+            this.scopedDoc = null;
+          }
+        } catch (e) {
+          this.deleteError = 'Network error — is the server running?';
+        }
+      },
+
+      // — chat —
+      async sendMessage() {
+        const q = this.question.trim();
+        if (!q || this.asking) return;
+
+        this.question = '';
+        this.$nextTick(() => this.autoResize(this.$refs.input));
+
+        // Push user bubble
+        this.messages.push({ role: 'user', content: q });
+        // Push loading AI bubble and track its index
+        const aiIdx = this.messages.length;
+        this.messages.push({ role: 'ai', content: '', sources: [], loading: true, error: false });
+        this.asking = true;
+        this.scrollToBottom();
+
+        try {
+          const body = { question: q };
+          if (this.scopedDoc) body.documentId = this.scopedDoc.documentId;
+
+          const res  = await fetch('/api/v1/chat', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body)
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            this.messages[aiIdx] = { role: 'ai', content: data.detail || data.message || 'Something went wrong.', sources: [], loading: false, error: true };
+          } else {
+            this.messages[aiIdx] = { role: 'ai', content: data.answer, sources: data.sources || [], loading: false, error: false };
+          }
+        } catch (e) {
+          this.messages[aiIdx] = { role: 'ai', content: 'Network error — is the server running?', sources: [], loading: false, error: true };
+        } finally {
+          this.asking = false;
+          this.$nextTick(() => this.scrollToBottom());
+        }
+      },
+
+      // — helpers —
+      renderMarkdown(text) {
+        return marked.parse(text || '');
+      },
+
+      scrollToBottom() {      this.$nextTick(() => {
+          const el = this.$refs.messages;
+          if (el) el.scrollTop = el.scrollHeight;
         });
-        const data = await res.json();
+      },
 
-        if (!res.ok) {
-          this.messages[aiIdx] = { role: 'ai', content: data.detail || data.message || 'Something went wrong.', sources: [], loading: false, error: true };
-        } else {
-          this.messages[aiIdx] = { role: 'ai', content: data.answer, sources: data.sources || [], loading: false, error: false };
-        }
-      } catch (e) {
-        this.messages[aiIdx] = { role: 'ai', content: 'Network error — is the server running?', sources: [], loading: false, error: true };
-      } finally {
-        this.asking = false;
-        this.$nextTick(() => this.scrollToBottom());
+      autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 128) + 'px';
       }
-    },
-
-    // — helpers —
-    renderMarkdown(text) {
-      return marked.parse(text || '');
-    },
-
-    scrollToBottom() {      this.$nextTick(() => {
-        const el = this.$refs.messages;
-        if (el) el.scrollTop = el.scrollHeight;
-      });
-    },
-
-    autoResize(el) {
-      el.style.height = 'auto';
-      el.style.height = Math.min(el.scrollHeight, 128) + 'px';
-    }
-  };
-}
+    };
+  }
 </script>
 </body>
 </html>
