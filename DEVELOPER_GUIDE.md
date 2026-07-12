@@ -8,18 +8,47 @@ This document explains every concept, every component, and every line of logic i
 
 ## Table of Contents
 
-1. [What problem does this project solve?](#1-what-problem-does-this-project-solve)
-2. [AI concepts you need to know](#2-ai-concepts-you-need-to-know)
-3. [How the technology stack fits together](#3-how-the-technology-stack-fits-together)
-4. [Spring AI — what it is and what it does here](#4-spring-ai--what-it-is-and-what-it-does-here)
-5. [Ollama — running AI models locally](#5-ollama--running-ai-models-locally)
-6. [ChromaDB — the vector database](#6-chromadb--the-vector-database)
-7. [The Upload Pipeline — step by step](#7-the-upload-pipeline--step-by-step)
-8. [The Query Pipeline — step by step](#8-the-query-pipeline--step-by-step)
-9. [Code walkthrough — every file explained](#9-code-walkthrough--every-file-explained)
-10. [Web UI — frontend explained](#10-web-ui--frontend-explained)
-11. [Configuration reference](#11-configuration-reference)
-12. [Known limitations and future improvements](#12-known-limitations-and-future-improvements)
+1. [Quick Start — Docker](#quick-start--docker)
+2. [What problem does this project solve?](#1-what-problem-does-this-project-solve)
+3. [AI concepts you need to know](#2-ai-concepts-you-need-to-know)
+4. [How the technology stack fits together](#3-how-the-technology-stack-fits-together)
+5. [Spring AI — what it is and what it does here](#4-spring-ai--what-it-is-and-what-it-does-here)
+6. [Ollama — running AI models locally](#5-ollama--running-ai-models-locally)
+7. [ChromaDB — the vector database](#6-chromadb--the-vector-database)
+8. [The Upload Pipeline — step by step](#7-the-upload-pipeline--step-by-step)
+9. [The Query Pipeline — step by step](#8-the-query-pipeline--step-by-step)
+10. [Code walkthrough — every file explained](#9-code-walkthrough--every-file-explained)
+11. [Web UI — frontend explained](#10-web-ui--frontend-explained)
+12. [Configuration reference](#11-configuration-reference)
+13. [Docker architecture](#docker-architecture)
+14. [Known limitations and future improvements](#12-known-limitations-and-future-improvements)
+
+---
+
+## Quick Start — Docker
+
+The fastest way to run the entire system is Docker:
+
+```bash
+./docker-start.sh
+```
+
+This single command:
+- Builds the Spring Boot Docker image
+- Starts three containers (Ollama, ChromaDB, DocSense)
+- Auto-pulls required AI models
+- Displays access URLs when ready
+
+**First startup:** 5-15 minutes (downloading Ollama models)  
+**Subsequent startups:** Instant (cached models)
+
+To stop:
+```bash
+./docker-stop.sh
+```
+
+Data is preserved across restarts (Ollama models, ChromaDB vectors, uploaded documents).
+
 ---
 
 ## 1. What problem does this project solve?
@@ -99,31 +128,31 @@ The AI is essentially open-book — it has the relevant pages in front of it whe
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                  Your Machine                        │
-│                                                      │
+│                  Your Machine                       │
+│                                                     │
 │  ┌─────────────────────────────────────────────┐    │
-│  │         Spring Boot Application              │    │
-│  │         (this project, port 8085)            │    │
-│  │                                              │    │
-│  │  Receives HTTP requests                      │    │
-│  │  Orchestrates the RAG pipeline               │    │
-│  │  Returns JSON responses                      │    │
+│  │         Spring Boot Application             │    │
+│  │         (this project, port 8085)           │    │
+│  │                                             │    │
+│  │  Receives HTTP requests                     │    │
+│  │  Orchestrates the RAG pipeline              │    │
+│  │  Returns JSON responses                     │    │
 │  └──────────────┬──────────────────────────────┘    │
-│                 │                                     │
-│        ┌────────┴──────────┐                         │
-│        ▼                   ▼                         │
-│  ┌──────────────┐   ┌──────────────────┐             │
-│  │    Ollama    │   │    ChromaDB      │             │
-│  │  port 11434  │   │   port 8000      │             │
-│  │              │   │   (Docker)       │             │
-│  │  Two models: │   │                  │             │
-│  │  - llama3.2  │   │  Stores vectors  │             │
-│  │    (chat)    │   │  + text chunks   │             │
-│  │  - nomic-    │   │  + metadata      │             │
-│  │    embed-    │   │                  │             │
-│  │    text      │   │                  │             │
-│  │  (embedding) │   │                  │             │
-│  └──────────────┘   └──────────────────┘             │
+│                 │                                   │
+│        ┌────────┴──────────┐                        │
+│        ▼                   ▼                        │
+│  ┌──────────────┐   ┌──────────────────┐            │
+│  │    Ollama    │   │    ChromaDB      │            │
+│  │  port 11434  │   │   port 8000      │            │
+│  │              │   │   (Docker)       │            │
+│  │  Two models: │   │                  │            │
+│  │  - llama3.2  │   │  Stores vectors  │            │
+│  │    (chat)    │   │  + text chunks   │            │
+│  │  - nomic-    │   │  + metadata      │            │
+│  │    embed-    │   │                  │            │
+│  │    text      │   │                  │            │
+│  │  (embedding) │   │                  │            │
+│  └──────────────┘   └──────────────────┘            │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -838,3 +867,214 @@ Once `chunkIds` are stored, `DELETE /api/v1/documents/{id}` will remove the corr
 **Current behaviour:** springdoc-openapi 2.8.6 is used. Versions 2.8.9 and 2.6.0 both cause `NoSuchMethodError` at runtime due to transitive swagger-annotations version conflicts with Spring AI's dependencies.
 
 **Fix if upgrading springdoc:** Check the swagger-annotations version resolved transitively and pin it explicitly in pom.xml if needed.
+
+---
+
+## Docker Architecture
+
+### Overview
+
+As of version 0.1.0, DocSense is fully containerized. All three components (Ollama, ChromaDB, and the Spring Boot application) run in Docker containers orchestrated by Docker Compose.
+
+### Why Docker?
+
+- **Single startup command:** `./docker-start.sh` runs everything instead of juggling multiple manual steps
+- **Reproducible environment:** Consistent JVM, OS, and dependency versions across machines
+- **No local setup required:** Users don't need to install Ollama, Java 21, or manage PATH variables
+- **Easy cleanup:** `./docker-stop.sh` gracefully tears down all services without residual processes
+- **Persistent data:** Volumes preserve Ollama models and ChromaDB state across restarts
+
+### Architecture
+
+```
+┌────────────────────────────────────────────────────────┐
+│              Docker Network (docsense_default)         │
+│                                                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │    Ollama    │  │   ChromaDB   │  │  DocSense    │  │
+│  │  port 11434  │  │  port 8000   │  │  port 8085   │  │
+│  │              │  │              │  │              │  │
+│  │ - llama3.2   │  │ v1.5.3       │  │ Spring Boot  │  │
+│  │ - nomic-     │  │ vectors      │  │ JAR (JRE)    │  │
+│  │   embed-text │  │ metadata     │  │              │  │
+│  │              │  │              │  │ static/      │  │
+│  │              │  │              │  │ index.html   │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│       ▲                   ▲                    ▲       │
+│       │ (internal)        │ (internal)        │ (host) │
+│       │                   │                   │        │
+│  ollama_data          chroma_data        :8085 exposed │
+│   volume               volume                          │
+│                                                        │
+└────────────────────────────────────────────────────────┘
+          ▲                              ▲
+          │ Host machine                 │
+          │                              │
+    ~/.ollama/models         http://localhost:8085
+    (large model files)      (web browser)
+```
+
+### Services
+
+**Ollama** (`ollama/ollama:latest`)
+- Serves the `llama3.2` chat model on internal port 11434
+- Serves the `nomic-embed-text` embedding model on internal port 11434
+- Volume `ollama_data` persists downloaded models
+- No direct access needed from host (DocSense calls it internally)
+
+**ChromaDB** (`chromadb/chroma:1.5.3`)
+- Stores vector embeddings and metadata
+- No direct access needed from host (DocSense calls it internally)
+- Volume `chroma_data` persists vectors and database state
+- Pinned to 1.5.3 (required for Spring AI 1.0.1 v2 API compatibility)
+
+**DocSense** (custom image from `Dockerfile`)
+- Spring Boot application compiled and packaged as a JAR
+- Runs on port 8085 (exposed to host machine)
+- Mounts `./storage` as host directory (for uploaded PDFs and registry)
+- Connects to Ollama at `http://ollama:11434` (internal DNS)
+- Connects to ChromaDB at `http://chromadb:8000` (internal DNS)
+
+### Dockerfile Strategy
+
+**Multi-stage build** reduces final image size:
+
+```dockerfile
+# Stage 1: Build
+FROM eclipse-temurin:21-jdk-jammy AS builder
+WORKDIR /app
+COPY . .
+RUN chmod +x mvnw && ./mvnw clean package -DskipTests -q
+
+# Stage 2: Runtime (lightweight JRE only)
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=builder /app/target/docsense-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8085
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+Only the compiled JAR is copied to the runtime stage, not the entire Maven cache or source code.
+
+### docker-compose.yml Structure
+
+```yaml
+services:
+  ollama:                 # Latest Ollama image
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: [ollama_data:/root/.ollama]
+    
+  chromadb:              # Pinned version for compatibility
+    image: chromadb/chroma:1.5.3
+    ports: ["8000:8000"]
+    volumes: [chroma_data:/chroma/chroma]
+    depends_on: [ollama]  # Start Ollama first
+    
+  docsense:              # Built from local Dockerfile
+    build: .
+    ports: ["8085:8085"]
+    environment:
+      - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
+      - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST=http://chromadb
+      - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT=8000
+    depends_on: [chromadb]
+    volumes: [./storage:/app/storage]
+    
+volumes:
+  ollama_data:            # Persists models
+  chroma_data:            # Persists vectors
+```
+
+**Key points:**
+- `depends_on` defines startup order (Ollama → ChromaDB → DocSense)
+- Internal service names (`ollama`, `chromadb`) resolve via Docker DNS
+- `./storage` is host-mounted so documents survive container restarts
+- Environment variables override `application.yaml` defaults
+
+### Startup Flow
+
+1. **`./docker-start.sh` called**
+
+2. **`docker-compose up --build -d`**
+   - Builds DocSense image (if Dockerfile changed)
+   - Starts Ollama container (pulls image if missing)
+   - Starts ChromaDB container
+   - Starts DocSense container
+   - All containers run detached (-d)
+
+3. **`docker-start.sh` waits 60 seconds**
+   - Allows Ollama to initialize
+   - Allows ChromaDB to become ready
+   - Allows Spring Boot to start up
+
+4. **`docker-compose exec` calls Ollama**
+   - Pulls `llama3.2` model
+   - Pulls `nomic-embed-text` model
+   - Models are stored in `ollama_data` volume (survives restarts)
+
+5. **Ready**
+   - DocSense health check: `curl http://localhost:8085/api/v1/health`
+   - Web UI: `http://localhost:8085`
+
+### Environment Variables
+
+The `docker-compose.yml` passes environment variables to Spring Boot, overriding values from `application.yaml`:
+
+```yaml
+environment:
+  - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
+  - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_HOST=http://chromadb
+  - SPRING_AI_VECTORSTORE_CHROMA_CLIENT_PORT=8000
+```
+
+These correspond to YAML properties:
+
+```yaml
+spring.ai.ollama.base-url: http://ollama:11434
+spring.ai.vectorstore.chroma.client.host: http://chromadb
+spring.ai.vectorstore.chroma.client.port: 8000
+```
+
+**Important:** The ChromaDB host must include the `http://` scheme (changed from local development which used just `chromadb`).
+
+### Volumes
+
+| Volume | Location (in container) | Location (on host) | Purpose |
+|---|---|---|---|
+| `ollama_data` | `/root/.ollama` | (Docker-managed) | Cached Ollama models (~7-10 GB) |
+| `chroma_data` | `/chroma/chroma` | (Docker-managed) | ChromaDB data and vectors |
+| `./storage` | `/app/storage` | `./storage` (project dir) | Uploaded PDFs and registry (visible to host) |
+
+**To preserve data across restarts:** volumes remain intact. `docker-compose down` stops containers but keeps volumes.
+
+**To delete all data:** `docker-compose down -v` removes volumes as well.
+
+### Debugging Docker
+
+**View logs:**
+```bash
+docker-compose logs -f                    # All services
+docker logs docsense --tail=50            # Just DocSense, last 50 lines
+docker-compose logs -f docsense           # Follow DocSense logs
+```
+
+**Check status:**
+```bash
+docker-compose ps                         # Container status
+docker exec docsense curl http://localhost:8085/api/v1/health
+```
+
+**Enter a container:**
+```bash
+docker exec -it docsense /bin/bash        # Shell in running container
+docker exec -it ollama /bin/bash
+```
+
+**Rebuild the image:**
+```bash
+docker-compose build --no-cache docsense # Force rebuild
+```
+
+---
+
