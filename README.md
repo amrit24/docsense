@@ -199,12 +199,13 @@ ollama pull nomic-embed-text
 
 2. **Start ChromaDB** in Docker:
 ```bash
-docker-compose up chromadb -d
+docker compose -f docker-compose-local.yml up -d 
 ```
 
 3. **Run Spring Boot**:
-Open project in IntelliJ, confirm JDK 21 is selected, run `DocSense.java`.
-
+```
+Open project in IntelliJ, confirm JDK 21 is selected, run `DocSense.java` - local profile.
+```
 4. **Verify health:**
 ```bash
 curl http://localhost:8085/api/v1/health
@@ -219,6 +220,13 @@ Expected:
   "timestamp": "..."
 }
 ```
+
+To stop services locally
+```bash
+ctrl+c ollama server
+docker compose -f docker-compose-local.yml down  
+```
+
 
 ---
 

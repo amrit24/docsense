@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: docsense
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: llama3.2        # Chat model – change to any model you have pulled
+          temperature: 0.0       # Low temp for factual RAG answers
+          num-ctx: 8192          # Context window size
+      embedding:
+        options:
+          model: nomic-embed-text  # Dedicated embedding model
+
+    vectorstore:
+      chroma:
+        client:
+          host: http://localhost
+          port: 8000
+        initialize-schema: true
+        collection-name: docsense-documents
+        tenant-name: default_tenant
+        database-name: default_database
+
+# RAG tuning knobs (read by RagProperties)
+rag:
+  chunk-size: 1000        # Characters per text chunk
+  chunk-overlap: 200      # Overlap between consecutive chunks
+  top-k: 5               # Number of similar chunks to retrieve per query
+
+# Local storage path where uploaded PDFs are persisted
+storage:
+  documents-path: storage/documents
+  registry-file: storage/registry.json   # persisted document registry — survives restarts
+
+server:
+  port: 8085
+  error:
+    whitelabel:
+      enabled: false
+  tomcat:
+    threads:
+      virtual: true   # Java 21 virtual threads — reduces blocking overhead on LLM/embedding calls
+
+# Swagger UI — http://localhost:8085/swagger-ui.html
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+  api-docs:
+    path: /api-docs
